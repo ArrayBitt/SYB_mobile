@@ -25,18 +25,11 @@ class _AuthenPageState extends State<AuthenPage> {
       final password = _passwordController.text;
       final url = 'https://ppw.somjai.app/PPWSJ/api/appfollowup/users.php';
 
-      // Debug: แสดงค่าที่กรอก
-      print("Username: $username");
-      print("Password: $password");
-
       try {
         final response = await http.post(
           Uri.parse(url),
           body: {'username': username, 'passwords': password},
         );
-
-        print("Response Status: ${response.statusCode}");
-        print("Response Body: ${response.body}");
 
         if (response.statusCode == 200) {
           final dynamic data = json.decode(response.body);
@@ -53,21 +46,19 @@ class _AuthenPageState extends State<AuthenPage> {
           }
 
           if (loginSuccess) {
-            print("Login successful");
             Navigator.pushReplacement(
               context,
-              MaterialPageRoute(builder: (context) => MainMobile()),
+              MaterialPageRoute(
+                builder: (context) => MainMobile(username: username),
+              ),
             );
           } else {
-            print("Login failed: Username and password do not match");
             _showError('ผู้ใช้หรือรหัสผ่านไม่ถูกต้อง');
           }
         } else {
-          print("Unable to connect to server");
           _showError('ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์');
         }
       } catch (e) {
-        print("Error: $e");
         _showError('เกิดข้อผิดพลาดในการเชื่อมต่อ: ${e.toString()}');
       } finally {
         setState(() {
