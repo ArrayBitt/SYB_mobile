@@ -1,4 +1,3 @@
-// lib/main.dart
 import 'package:flutter/material.dart';
 import 'states/authen.dart'; // นำเข้าจากโฟลเดอร์ states
 
@@ -10,6 +9,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      debugShowCheckedModeBanner: false, // ✅ ซ่อนแถบ DEBUG
       title: 'Flutter Login',
       theme: ThemeData(primarySwatch: Colors.blue),
       home: AuthenPage(), // เริ่มต้นที่หน้า AuthenPage

@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:test_app/states/mainmobile.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class AuthenPage extends StatefulWidget {
   @override
@@ -53,13 +54,13 @@ class _AuthenPageState extends State<AuthenPage> {
               ),
             );
           } else {
-            _showError('ผู้ใช้หรือรหัสผ่านไม่ถูกต้อง');
+            _showError('ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง');
           }
         } else {
           _showError('ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์');
         }
       } catch (e) {
-        _showError('เกิดข้อผิดพลาดในการเชื่อมต่อ: ${e.toString()}');
+        _showError('เกิดข้อผิดพลาด: ${e.toString()}');
       } finally {
         setState(() {
           _isLoading = false;
@@ -71,191 +72,183 @@ class _AuthenPageState extends State<AuthenPage> {
   void _showError(String message) {
     showDialog(
       context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: Text(
-            'ข้อผิดพลาด',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-          ),
-          content: Text(message, style: TextStyle(fontSize: 16)),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-              child: Text(
-                'ตกลง',
-                style: TextStyle(fontSize: 16, color: Colors.blueAccent),
-              ),
+      builder:
+          (context) => AlertDialog(
+            title: Text(
+              'ข้อผิดพลาด',
+              style: GoogleFonts.prompt(fontWeight: FontWeight.bold),
             ),
-          ],
-        );
-      },
+            content: Text(message, style: GoogleFonts.prompt()),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: Text(
+                  'ตกลง',
+                  style: GoogleFonts.prompt(color: Colors.amber[800]),
+                ),
+              ),
+            ],
+          ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    // กำหนด TextStyle ทั้งหมดที่ใช้ใน UI
-    final hintStyle = TextStyle(color: Colors.grey[600], fontSize: 16);
-    final inputTextStyle = TextStyle(color: Colors.black87, fontSize: 16);
+    final inputTextStyle = GoogleFonts.prompt(
+      color: Colors.grey[900],
+      fontSize: 16,
+    );
+    final hintStyle = GoogleFonts.prompt(color: Colors.grey[500], fontSize: 16);
 
     return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: AppBar(
-        title: Text(
-          'เข้าสู่ระบบ',
-          style: TextStyle(fontSize: 20, color: Colors.black87),
-        ),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        centerTitle: true,
-        iconTheme: IconThemeData(color: Colors.black87),
-      ),
-      body: Stack(
-        children: [
-          Positioned.fill(
-            child: Container(
-              decoration: BoxDecoration(
-                // ใช้ gradient โทนสีอ่อน
-                gradient: LinearGradient(
-                  colors: [Colors.lightBlue[100]!, Colors.pink[100]!],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-              ),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 32.0),
-            child: Center(
-              child: SingleChildScrollView(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      Icons.account_circle,
+      backgroundColor: Colors.grey.shade100,
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 32.0),
+          child: Center(
+            child: SingleChildScrollView(
+              child: Column(
+                children: [
+                  ShaderMask(
+                    shaderCallback:
+                        (bounds) => LinearGradient(
+                          colors: [Colors.amber[700]!, Colors.orange[300]!],
+                        ).createShader(bounds),
+                    child: Icon(
+                      Icons.person_pin_rounded,
                       size: 100,
-                      color: Colors.black54,
+                      color: Colors.white,
                     ),
-                    SizedBox(height: 30),
-                    Form(
-                      key: _formKey,
-                      child: Column(
-                        children: [
-                          // ช่องกรอกชื่อผู้ใช้
-                          TextFormField(
-                            controller: _userController,
-                            style: inputTextStyle,
-                            decoration: InputDecoration(
-                              hintText: 'ชื่อผู้ใช้',
-                              hintStyle: hintStyle,
-                              prefixIcon: Icon(
-                                Icons.person,
-                                color: Colors.black54,
+                  ),
+                  SizedBox(height: 20),
+                  Text(
+                    'เข้าสู่ระบบ',
+                    style: GoogleFonts.prompt(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.grey[800],
+                    ),
+                  ),
+                  SizedBox(height: 30),
+                  Form(
+                    key: _formKey,
+                    child: Column(
+                      children: [
+                        // Username
+                        TextFormField(
+                          controller: _userController,
+                          style: inputTextStyle,
+                          decoration: InputDecoration(
+                            hintText: 'ชื่อผู้ใช้',
+                            hintStyle: hintStyle,
+                            prefixIcon: Icon(
+                              Icons.person,
+                              color: Colors.grey[700],
+                            ),
+                            filled: true,
+                            fillColor: Colors.grey.shade200,
+                            contentPadding: EdgeInsets.symmetric(
+                              vertical: 16,
+                              horizontal: 20,
+                            ),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(30),
+                              borderSide: BorderSide.none,
+                            ),
+                          ),
+                          validator:
+                              (value) =>
+                                  value == null || value.isEmpty
+                                      ? 'กรุณากรอกชื่อผู้ใช้'
+                                      : null,
+                        ),
+                        SizedBox(height: 20),
+                        // Password
+                        TextFormField(
+                          controller: _passwordController,
+                          obscureText: !_isPasswordVisible,
+                          style: inputTextStyle,
+                          decoration: InputDecoration(
+                            hintText: 'รหัสผ่าน',
+                            hintStyle: hintStyle,
+                            prefixIcon: Icon(
+                              Icons.lock,
+                              color: Colors.grey[700],
+                            ),
+                            suffixIcon: IconButton(
+                              icon: Icon(
+                                _isPasswordVisible
+                                    ? Icons.visibility
+                                    : Icons.visibility_off,
+                                color: Colors.grey[700],
                               ),
-                              filled: true,
-                              fillColor: Colors.white,
-                              contentPadding: EdgeInsets.symmetric(
-                                vertical: 16,
-                                horizontal: 20,
+                              onPressed: () {
+                                setState(() {
+                                  _isPasswordVisible = !_isPasswordVisible;
+                                });
+                              },
+                            ),
+                            filled: true,
+                            fillColor: Colors.grey.shade200,
+                            contentPadding: EdgeInsets.symmetric(
+                              vertical: 16,
+                              horizontal: 20,
+                            ),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(30),
+                              borderSide: BorderSide.none,
+                            ),
+                          ),
+                          validator:
+                              (value) =>
+                                  value == null || value.isEmpty
+                                      ? 'กรุณากรอกรหัสผ่าน'
+                                      : null,
+                        ),
+                        SizedBox(height: 30),
+                        // Login button
+                        _isLoading
+                            ? CircularProgressIndicator(
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                Colors.amber[700]!,
                               ),
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(30),
-                                borderSide: BorderSide.none,
+                            )
+                            : SizedBox(
+                              width: double.infinity,
+                              child: ElevatedButton(
+                                onPressed: _login,
+                                style: ElevatedButton.styleFrom(
+                                  padding: EdgeInsets.symmetric(vertical: 16),
+                                  backgroundColor: const Color.fromARGB(
+                                    255,
+                                    255,
+                                    196,
+                                    1,
+                                  ),
+                                  foregroundColor: Colors.grey[900],
+                                  elevation: 4,
+                                  shadowColor: Colors.amber.shade100,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(30),
+                                  ),
+                                ),
+                                child: Text(
+                                  'เข้าสู่ระบบ',
+                                  style: GoogleFonts.prompt(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
                               ),
                             ),
-                            validator: (value) {
-                              if (value == null || value.isEmpty) {
-                                return 'กรุณากรอกชื่อผู้ใช้';
-                              }
-                              return null;
-                            },
-                          ),
-                          SizedBox(height: 20),
-                          // ช่องกรอกรหัสผ่าน
-                          TextFormField(
-                            controller: _passwordController,
-                            obscureText: !_isPasswordVisible,
-                            style: inputTextStyle,
-                            decoration: InputDecoration(
-                              hintText: 'รหัสผ่าน',
-                              hintStyle: hintStyle,
-                              prefixIcon: Icon(
-                                Icons.lock,
-                                color: Colors.black54,
-                              ),
-                              filled: true,
-                              fillColor: Colors.white,
-                              contentPadding: EdgeInsets.symmetric(
-                                vertical: 16,
-                                horizontal: 20,
-                              ),
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(30),
-                                borderSide: BorderSide.none,
-                              ),
-                              suffixIcon: IconButton(
-                                icon: Icon(
-                                  _isPasswordVisible
-                                      ? Icons.visibility
-                                      : Icons.visibility_off,
-                                  color: Colors.black54,
-                                ),
-                                onPressed: () {
-                                  setState(() {
-                                    _isPasswordVisible = !_isPasswordVisible;
-                                  });
-                                },
-                              ),
-                            ),
-                            validator: (value) {
-                              if (value == null || value.isEmpty) {
-                                return 'กรุณากรอกรหัสผ่าน';
-                              }
-                              return null;
-                            },
-                          ),
-                          SizedBox(height: 30),
-                          // ปุ่มเข้าสู่ระบบ
-                          _isLoading
-                              ? CircularProgressIndicator(
-                                valueColor: AlwaysStoppedAnimation<Color>(
-                                  Colors.black54,
-                                ),
-                              )
-                              : AnimatedContainer(
-                                duration: Duration(milliseconds: 300),
-                                width: double.infinity,
-                                child: ElevatedButton(
-                                  onPressed: _login,
-                                  style: ElevatedButton.styleFrom(
-                                    foregroundColor: Colors.black87, backgroundColor: Colors.white,
-                                    padding: EdgeInsets.symmetric(vertical: 16),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(30),
-                                    ),
-                                    elevation: 5,
-                                  ),
-                                  child: Text(
-                                    'เข้าสู่ระบบ',
-                                    style: TextStyle(
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.black87,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                        ],
-                      ),
+                      ],
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
           ),
-        ],
+        ),
       ),
     );
   }
