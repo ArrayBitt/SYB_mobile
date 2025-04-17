@@ -309,7 +309,7 @@ class _MainMobileState extends State<MainMobile> {
           ),
           actions: [
             Container(
-              width: double.infinity,
+              width: double.infinity, 
               padding: EdgeInsets.symmetric(horizontal: 20, vertical: 8),
               child: ElevatedButton(
                 onPressed: () {

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'dart:io';
+import 'package:test_app/states/cameraGridPage.dart';
 
 class SaveRushPage extends StatefulWidget {
   final String contractNo;
@@ -26,6 +28,7 @@ class _SaveRushPageState extends State<SaveRushPage> {
   final TextEditingController _locationController = TextEditingController();
 
   int _selectedIndex = 0;
+  List<File?> _capturedImages = List.generate(6, (index) => null);
 
   @override
   void dispose() {
@@ -39,6 +42,13 @@ class _SaveRushPageState extends State<SaveRushPage> {
   }
 
   void _submitForm() {
+    if (_capturedImages.where((img) => img != null).length != 6) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('กรุณาถ่ายภาพให้ครบทั้ง 6 ภาพก่อนบันทึก')),
+      );
+      return;
+    }
+
     if (_formKey.currentState!.validate()) {
       showDialog(
         context: context,
@@ -121,8 +131,7 @@ class _SaveRushPageState extends State<SaveRushPage> {
     );
   }
 
-
-  void _onItemTapped(int index) {
+  void _onItemTapped(int index) async {
     setState(() {
       _selectedIndex = index;
     });
@@ -132,9 +141,16 @@ class _SaveRushPageState extends State<SaveRushPage> {
         _submitForm();
         break;
       case 1:
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('📷 เปิดกล้อง (ยังไม่เชื่อมต่อ)')),
+        final result = await Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const CameraGridPage()),
         );
+
+        if (result != null && result is List<File?>) {
+          setState(() {
+            _capturedImages = result;
+          });
+        }
         break;
       case 2:
         ScaffoldMessenger.of(
