@@ -1,6 +1,8 @@
+import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'dart:io';
+import 'package:http/http.dart' as http;
 import 'package:test_app/states/cameraGridPage.dart';
 
 class SaveRushPage extends StatefulWidget {
@@ -28,32 +30,131 @@ class _SaveRushPageState extends State<SaveRushPage> {
   final TextEditingController _locationController = TextEditingController();
 
   int _selectedIndex = 0;
-  List<File?> _capturedImages = List.generate(6, (index) => null);
+  bool _isSaving = false;
+
+  bool _loadingFollowTypes = true;
+  List<Map<String, String>> _followTypes = [];
+  String? _selectedFollowType;
 
   @override
-  void dispose() {
-    _noteController.dispose();
-    _dueDateController.dispose();
-    _amountController.dispose();
-    _followFeeController.dispose();
-    _mileageController.dispose();
-    _locationController.dispose();
-    super.dispose();
+  void initState() {
+    super.initState();
+    _fetchFollowTypes();
   }
 
-  void _submitForm() {
-    if (_capturedImages.where((img) => img != null).length != 6) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('กรุณาถ่ายภาพให้ครบทั้ง 6 ภาพก่อนบันทึก')),
+  String formatThaiDate(String input) {
+    try {
+      final parts = input.split('/'); // ['18','03','2568']
+      if (parts.length == 3) {
+        final day = parts[0].padLeft(2, '0'); // '18'
+        final month = parts[1].padLeft(2, '0'); // '03'
+        final yearBE = int.parse(parts[2]) - 543; // แปลงปี พ.ศ. เป็น ค.ศ.
+
+        // คืนเป็น '20250318' (รูปแบบ YYYYMMDD)
+        return '${yearBE.toString().padLeft(4, '0')}$month$day';
+      }
+    } catch (e) {
+      print('Error in date format: $e');
+    }
+    return input; // fallback ถ้ารูปแบบไม่ถูกต้อง
+  }
+
+  Future<void> _fetchFollowTypes() async {
+    const url =
+        'https://ppw.somjai.app/PPWSJ/api/appfollowup/get_followtype.php?followtype=M-1';
+    try {
+      final res = await http.get(Uri.parse(url));
+      if (res.statusCode == 200) {
+        final List data = json.decode(res.body);
+        setState(() {
+          _followTypes =
+              data
+                  .map<Map<String, String>>(
+                    (item) => {
+                      'code': item['followtype'].toString(),
+                      'label': item['meaning'].toString(),
+                    },
+                  )
+                  .toList();
+          _loadingFollowTypes = false;
+        });
+      } else {
+        setState(() => _loadingFollowTypes = false);
+      }
+    } catch (_) {
+      setState(() => _loadingFollowTypes = false);
+    }
+  }
+
+  Future<bool> _saveRush() async {
+    final String url =
+        'https://ppw.somjai.app/PPWSJ/api/appfollowup/up_saverush.php?contractno=${widget.contractNo}';
+
+    final data = {
+      'contractno': widget.contractNo,
+      'memo': _noteController.text,
+      'followtype': _selectedFollowType ?? '',
+      'entrydate': formatThaiDate(_dueDateController.text), // ใช้แปลงวันที่
+      'meetingamount': _amountController.text,
+      'followamount': _followFeeController.text,
+      'mileages': _mileageController.text,
+      'maplocations': _locationController.text,
+    };
+
+    print('📤 ส่งข้อมูลไปยัง: $url');
+    print('📦 Payload: $data');
+
+    try {
+      final res = await http.post(
+        Uri.parse(url),
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode(data),
       );
+
+      print('📥 Response Code: ${res.statusCode}');
+      print('📥 Response Body: ${res.body}');
+
+      return res.statusCode == 200;
+    } catch (e) {
+      print('❌ เกิดข้อผิดพลาดขณะส่งข้อมูล: $e');
+      return false;
+    }
+  }
+
+  void _submitForm() async {
+    print('เริ่มบันทึกข้อมูล...');
+
+    if (_selectedFollowType == null) {
+      print('ยังไม่ได้เลือกประเภทการตาม');
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('กรุณาเลือกประเภทการตาม')));
       return;
     }
 
-    if (_formKey.currentState!.validate()) {
+    if (!_formKey.currentState!.validate()) {
+      print('Form validation ไม่ผ่าน');
+      return;
+    }
+
+    setState(() => _isSaving = true);
+    final success = await _saveRush();
+    setState(() => _isSaving = false);
+
+    print('บันทึกสำเร็จหรือไม่: $success');
+
+    if (!success) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('บันทึกไม่สำเร็จ โปรดลองใหม่')));
+      return;
+    }
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
       showDialog(
         context: context,
         builder:
-            (context) => Dialog(
+            (BuildContext dialogContext) => Dialog(
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(20),
               ),
@@ -66,7 +167,7 @@ class _SaveRushPageState extends State<SaveRushPage> {
                     Icon(Icons.check_circle, size: 64, color: Colors.green),
                     SizedBox(height: 16),
                     Text(
-                      "บันทึกสำเร็จ",
+                      'บันทึกสำเร็จ',
                       style: TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
@@ -75,15 +176,23 @@ class _SaveRushPageState extends State<SaveRushPage> {
                     ),
                     SizedBox(height: 16),
                     Divider(),
-                    SizedBox(height: 8),
-                    _buildInfoRow("📋 ข้อความ", _noteController.text),
-                    _buildInfoRow("🗓 วันนัดชำระ", _dueDateController.text),
-                    _buildInfoRow("💰 จำนวนเงิน", _amountController.text),
-                    _buildInfoRow("🧾 ค่าติดตาม", _followFeeController.text),
-                    _buildInfoRow("🚗 ระยะไมล์", _mileageController.text),
-                    _buildInfoRow("📍 สถานที่", _locationController.text),
+                    _buildInfoRow('ข้อความ', _noteController.text),
+                    _buildInfoRow(
+                      'ประเภทการตาม',
+                      _followTypes.firstWhere(
+                        (e) => e['code'] == _selectedFollowType,
+                      )['label']!,
+                    ),
+                    _buildInfoRow('วันนัดชำระ', _dueDateController.text),
+                    _buildInfoRow('จำนวนเงิน', _amountController.text),
+                    _buildInfoRow('ค่าติดตาม', _followFeeController.text),
+                    _buildInfoRow('ระยะไมล์', _mileageController.text),
+                    _buildInfoRow('สถานที่', _locationController.text),
                     SizedBox(height: 20),
                     ElevatedButton.icon(
+                      onPressed: () => Navigator.pop(dialogContext),
+                      icon: Icon(Icons.check),
+                      label: Text('ตกลง', style: TextStyle(fontSize: 16)),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.amber.shade700,
                         shape: RoundedRectangleBorder(
@@ -94,16 +203,13 @@ class _SaveRushPageState extends State<SaveRushPage> {
                           vertical: 12,
                         ),
                       ),
-                      icon: Icon(Icons.check),
-                      label: Text("ตกลง", style: TextStyle(fontSize: 16)),
-                      onPressed: () => Navigator.pop(context),
                     ),
                   ],
                 ),
               ),
             ),
       );
-    }
+    });
   }
 
   Widget _buildInfoRow(String title, String value) {
@@ -114,43 +220,29 @@ class _SaveRushPageState extends State<SaveRushPage> {
         children: [
           Expanded(
             flex: 3,
-            child: Text(
-              title,
-              style: TextStyle(
-                fontWeight: FontWeight.w600,
-                color: Colors.grey.shade800,
-              ),
-            ),
+            child: Text(title, style: TextStyle(fontWeight: FontWeight.w600)),
           ),
-          Expanded(
-            flex: 5,
-            child: Text(value, style: TextStyle(color: Colors.grey.shade700)),
-          ),
+          Expanded(flex: 5, child: Text(value)),
         ],
       ),
     );
   }
 
-  void _onItemTapped(int index) async {
-    setState(() {
-      _selectedIndex = index;
-    });
-
+  void _onItemTapped(int index) {
+    setState(() => _selectedIndex = index);
     switch (index) {
       case 0:
         _submitForm();
         break;
       case 1:
-        final result = await Navigator.push(
+        Navigator.push(
           context,
-          MaterialPageRoute(builder: (context) => const CameraGridPage()),
-        );
-
-        if (result != null && result is List<File?>) {
-          setState(() {
-            _capturedImages = result;
-          });
-        }
+          MaterialPageRoute(builder: (_) => const CameraGridPage()),
+        ).then((result) {
+          if (result != null && result is List<File?>) {
+            // handle images if needed
+          }
+        });
         break;
       case 2:
         ScaffoldMessenger.of(
@@ -204,7 +296,6 @@ class _SaveRushPageState extends State<SaveRushPage> {
   Widget build(BuildContext context) {
     final yellow = Colors.amber.shade700;
     final grey = Colors.grey.shade900;
-
     return Scaffold(
       backgroundColor: Colors.grey.shade100,
       appBar: AppBar(
@@ -213,87 +304,126 @@ class _SaveRushPageState extends State<SaveRushPage> {
         foregroundColor: Colors.white,
         elevation: 1,
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Form(
-          key: _formKey,
-          child: ListView(
-            children: [
-              Card(
-                color: Colors.amber.shade50,
-                elevation: 3,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                child: ListTile(
-                  leading: Icon(Icons.receipt_long, color: grey),
-                  title: Text(
-                    'เลขสัญญา: ${widget.contractNo}',
-                    style: GoogleFonts.prompt(fontWeight: FontWeight.bold),
+      body: Stack(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Form(
+              key: _formKey,
+              child: ListView(
+                children: [
+                  Card(
+                    color: Colors.amber.shade50,
+                    elevation: 3,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    child: ListTile(
+                      leading: Icon(Icons.receipt_long, color: grey),
+                      title: Text(
+                        'เลขสัญญา: ${widget.contractNo}',
+                        style: GoogleFonts.prompt(fontWeight: FontWeight.bold),
+                      ),
+                      subtitle: Text(
+                        'ยอดจัด: ${widget.hpprice} บาท',
+                        style: GoogleFonts.prompt(),
+                      ),
+                    ),
                   ),
-                  subtitle: Text(
-                    'ยอดจัด: ${widget.hpprice} บาท',
-                    style: GoogleFonts.prompt(),
+                  SizedBox(height: 16),
+                  _buildTextField(
+                    label: 'ข้อความ',
+                    icon: Icons.notes,
+                    controller: _noteController,
+                    maxLines: 3,
                   ),
-                ),
+                   Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    child: DropdownButtonFormField<String>(
+                      value: _selectedFollowType,
+                      hint: Text(
+                        'กรุณาเลือกประเภทการตาม',
+                        style: GoogleFonts.prompt(),
+                      ),
+                      icon: Icon(Icons.arrow_drop_down, color: grey),
+                      decoration: InputDecoration(
+                        prefixIcon: Icon(Icons.list, color: yellow),
+                        filled: true,
+                        fillColor: Colors.white,
+                        contentPadding: EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 12,
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(14),
+                          borderSide: BorderSide(color: Colors.grey.shade300),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(14),
+                          borderSide: BorderSide(color: yellow, width: 1.5),
+                        ),
+                      ),
+                      onChanged:
+                          (value) =>
+                              setState(() => _selectedFollowType = value),
+                      items:
+                          _followTypes
+                              .map(
+                                (e) => DropdownMenuItem<String>(
+                                  value: e['code'],
+                                  child: Text(e['label']!),
+                                ),
+                              )
+                              .toList(),
+                    ),
+                  ),
+                  _buildTextField(
+                    label: 'วันนัดชำระ (วัน/เดือน/ปี)',
+                    icon: Icons.calendar_today,
+                    controller: _dueDateController,
+                    keyboardType: TextInputType.datetime,
+                  ),
+                  _buildTextField(
+                    label: 'จำนวนเงิน',
+                    icon: Icons.attach_money,
+                    controller: _amountController,
+                    keyboardType: TextInputType.number,
+                  ),
+                  _buildTextField(
+                    label: 'ค่าติดตาม',
+                    icon: Icons.account_balance_wallet,
+                    controller: _followFeeController,
+                    keyboardType: TextInputType.number,
+                  ),
+                  _buildTextField(
+                    label: 'ระยะไมล์',
+                    icon: Icons.gps_fixed,
+                    controller: _mileageController,
+                    keyboardType: TextInputType.number,
+                  ),
+                  _buildTextField(
+                    label: 'สถานที่',
+                    icon: Icons.location_on,
+                    controller: _locationController,
+                  ),
+                  SizedBox(height: 16),
+                 
+                ],
               ),
-              const SizedBox(height: 16),
-              _buildTextField(
-                label: 'ข้อความ',
-                icon: Icons.notes,
-                controller: _noteController,
-                maxLines: 3,
-              ),
-              _buildTextField(
-                label: 'วันนัดชำระ',
-                icon: Icons.date_range,
-                controller: _dueDateController,
-                keyboardType: TextInputType.datetime,
-              ),
-              _buildTextField(
-                label: 'จำนวนเงินนัดชำระ',
-                icon: Icons.attach_money,
-                controller: _amountController,
-                keyboardType: TextInputType.number,
-              ),
-              _buildTextField(
-                label: 'ค่าติดตาม',
-                icon: Icons.money_off,
-                controller: _followFeeController,
-                keyboardType: TextInputType.number,
-              ),
-              _buildTextField(
-                label: 'ระยะไมล์',
-                icon: Icons.directions_car,
-                controller: _mileageController,
-                keyboardType: TextInputType.number,
-              ),
-              _buildTextField(
-                label: 'สถานที่',
-                icon: Icons.location_on,
-                controller: _locationController,
-                maxLines: 2,
-              ),
-            ],
+            ),
           ),
-        ),
+          if (_isSaving)
+            Center(child: CircularProgressIndicator(color: yellow)),
+        ],
       ),
       bottomNavigationBar: BottomNavigationBar(
+        currentIndex: _selectedIndex,
+        onTap: _onItemTapped,
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.save), label: 'บันทึก'),
           BottomNavigationBarItem(icon: Icon(Icons.camera_alt), label: 'กล้อง'),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.more_horiz),
-            label: 'อื่น ๆ',
-          ),
+          BottomNavigationBarItem(icon: Icon(Icons.menu), label: 'อื่น ๆ'),
         ],
-        currentIndex: _selectedIndex,
-        selectedItemColor: Colors.amber.shade800,
-        unselectedItemColor: Colors.grey.shade600,
-        backgroundColor: Colors.white,
-        onTap: _onItemTapped,
-        elevation: 10,
-        type: BottomNavigationBarType.fixed,
       ),
     );
   }
