@@ -36,22 +36,24 @@ class _SaveRushPageState extends State<SaveRushPage> {
   List<Map<String, String>> _followTypes = [];
   String? _selectedFollowType;
 
+    // ✅ เพิ่มตรงนี้ เพื่อเก็บชื่อไฟล์รูปจากกล้อง
+  List<String?> imageFilenames = List.filled(6, null);
+
   @override
   void initState() {
     super.initState();
     _fetchFollowTypes();
   }
 
-  String formatThaiDate(String input) {
+ String formatThaiDate(String input) {
     try {
       final parts = input.split('/'); // ['18','03','2568']
       if (parts.length == 3) {
         final day = parts[0].padLeft(2, '0'); // '18'
         final month = parts[1].padLeft(2, '0'); // '03'
-        final yearBE = int.parse(parts[2]) - 543; // แปลงปี พ.ศ. เป็น ค.ศ.
+        final year = parts[2].padLeft(4, '0'); // '2568'
 
-        // คืนเป็น '20250318' (รูปแบบ YYYYMMDD)
-        return '${yearBE.toString().padLeft(4, '0')}$month$day';
+        return '$year$month$day'; // คืนเป็น '25680318'
       }
     } catch (e) {
       print('Error in date format: $e');
@@ -94,11 +96,17 @@ class _SaveRushPageState extends State<SaveRushPage> {
       'contractno': widget.contractNo,
       'memo': _noteController.text,
       'followtype': _selectedFollowType ?? '',
-      'entrydate': formatThaiDate(_dueDateController.text), // ใช้แปลงวันที่
+      'meetingdate': formatThaiDate(_dueDateController.text), // ใช้แปลงวันที่
       'meetingamount': _amountController.text,
       'followamount': _followFeeController.text,
       'mileages': _mileageController.text,
       'maplocations': _locationController.text,
+      'pica': imageFilenames.length > 0 ? imageFilenames[0] : '',
+      'picb': imageFilenames.length > 1 ? imageFilenames[1] : '',
+      'picc': imageFilenames.length > 2 ? imageFilenames[2] : '',
+      'picd': imageFilenames.length > 3 ? imageFilenames[3] : '',
+      'pice': imageFilenames.length > 4 ? imageFilenames[4] : '',
+      'picf': imageFilenames.length > 5 ? imageFilenames[5] : '',
     };
 
     print('📤 ส่งข้อมูลไปยัง: $url');
@@ -232,15 +240,19 @@ class _SaveRushPageState extends State<SaveRushPage> {
     setState(() => _selectedIndex = index);
     switch (index) {
       case 0:
-        _submitForm();
+        _submitForm(); // เรียกบันทึกข้อมูล
         break;
       case 1:
         Navigator.push(
           context,
-          MaterialPageRoute(builder: (_) => const CameraGridPage()),
+          MaterialPageRoute(
+            builder: (_) => CameraGridPage(contractno: widget.contractNo),
+          ),
         ).then((result) {
-          if (result != null && result is List<File?>) {
-            // handle images if needed
+          if (result != null && result is Map) {
+            setState(() {
+              imageFilenames = List<String?>.from(result['filenames'] ?? []);
+            });
           }
         });
         break;
@@ -251,6 +263,8 @@ class _SaveRushPageState extends State<SaveRushPage> {
         break;
     }
   }
+
+  
 
   Widget _buildTextField({
     required String label,
@@ -337,7 +351,7 @@ class _SaveRushPageState extends State<SaveRushPage> {
                     controller: _noteController,
                     maxLines: 3,
                   ),
-                   Padding(
+                  Padding(
                     padding: const EdgeInsets.symmetric(vertical: 8),
                     child: DropdownButtonFormField<String>(
                       value: _selectedFollowType,
@@ -407,7 +421,6 @@ class _SaveRushPageState extends State<SaveRushPage> {
                     controller: _locationController,
                   ),
                   SizedBox(height: 16),
-                 
                 ],
               ),
             ),

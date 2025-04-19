@@ -2,9 +2,13 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:path/path.dart' as path;
+import 'package:flutter/foundation.dart' show kIsWeb;
 
 class CameraGridPage extends StatefulWidget {
-  const CameraGridPage({Key? key}) : super(key: key);
+  final String contractno;
+  const CameraGridPage({Key? key, required this.contractno}) : super(key: key);
 
   @override
   State<CameraGridPage> createState() => _CameraGridPageState();
@@ -14,23 +18,62 @@ class _CameraGridPageState extends State<CameraGridPage> {
   final ImagePicker _picker = ImagePicker();
   List<File?> _imageFiles = List.generate(6, (index) => null);
 
-  final List<String> _dropdownItems = [
-    'ภาพสินค้าหลักประกัน',
-    'ภาพเอกสาร',
-    'ภาพสถานที่',
-    'ภาพอื่น ๆ',
-  ];
-  String? _selectedItem;
-
-  Future<void> _pickImage(int index) async {
-    final pickedFile = await _picker.pickImage(source: ImageSource.camera);
-
+  Future<void> _pickImage(int index, ImageSource source) async {
+    final pickedFile = await _picker.pickImage(source: source);
     if (pickedFile != null) {
+      String newPath;
+      if (kIsWeb) {
+        newPath = pickedFile.path;
+      } else {
+        final directory = await getTemporaryDirectory();
+        newPath = path.join(
+          directory.path,
+          '${widget.contractno}_${String.fromCharCode(97 + index)}.jpg',
+        );
+      }
+
+      final newImage = File(newPath);
+      await newImage.writeAsBytes(await pickedFile.readAsBytes());
+
       setState(() {
-        _imageFiles[index] = File(pickedFile.path);
+        _imageFiles[index] = newImage;
       });
     }
   }
+
+ void _saveImagesAndReturn() {
+    final fileNames = <String?>[];
+
+    // ตรวจสอบว่าไฟล์ใน _imageFiles มีค่าหรือไม่
+    for (int i = 0; i < _imageFiles.length; i++) {
+      final file = _imageFiles[i];
+      if (file != null) {
+        fileNames.add(path.basename(file.path));
+      } else {
+        fileNames.add(null);
+      }
+    }
+
+    // ตรวจสอบว่ามีไฟล์รูปภาพอย่างน้อย 1 รูปหรือไม่
+    if (fileNames.any((file) => file != null)) {
+      // Log the values being sent
+      print('Sending data to SaveRushPage');
+      print('Contract No: ${widget.contractno}');
+      print('File Names: $fileNames');
+
+      Navigator.pop(context, {
+        'contractno': widget.contractno,
+        'filenames': fileNames,
+      });
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('กรุณาถ่ายรูปหรือเลือกภาพจากแกลเลอรี่ก่อนบันทึก'),
+        ),
+      );
+    }
+  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -39,42 +82,25 @@ class _CameraGridPageState extends State<CameraGridPage> {
     return Scaffold(
       backgroundColor: Colors.grey.shade100,
       appBar: AppBar(
-        title: Text('📷 ภาพถ่าย', style: GoogleFonts.prompt()),
+        title: Text(
+          '📷 ภาพถ่าย (${widget.contractno})',
+          style: GoogleFonts.prompt(),
+        ),
         backgroundColor: yellow,
         foregroundColor: Colors.white,
         elevation: 2,
+        actions: [
+          IconButton(
+            icon: Icon(Icons.check),
+            onPressed: _saveImagesAndReturn,
+            tooltip: 'บันทึกรูป',
+          ),
+        ],
       ),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
-            DropdownButtonFormField<String>(
-              value: _selectedItem,
-              decoration: InputDecoration(
-                labelText: 'เลือกประเภทภาพ',
-                labelStyle: GoogleFonts.prompt(),
-                prefixIcon: Icon(Icons.image_outlined),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                filled: true,
-                fillColor: Colors.white,
-              ),
-              items:
-                  _dropdownItems
-                      .map(
-                        (item) => DropdownMenuItem(
-                          value: item,
-                          child: Text(item, style: GoogleFonts.prompt()),
-                        ),
-                      )
-                      .toList(),
-              onChanged: (value) {
-                setState(() {
-                  _selectedItem = value;
-                });
-              },
-            ),
             const SizedBox(height: 16),
             Expanded(
               child: GridView.builder(
@@ -86,13 +112,41 @@ class _CameraGridPageState extends State<CameraGridPage> {
                 ),
                 itemBuilder: (context, index) {
                   final imageFile = _imageFiles[index];
-
                   return GestureDetector(
-                    onTap: () => _pickImage(index),
+                    onTap: () {
+                      // Show dialog to choose between camera or gallery
+                      showDialog(
+                        context: context,
+                        builder:
+                            (context) => AlertDialog(
+                              title: Text('เลือกแหล่งที่มาของภาพ'),
+                              actions: [
+                                TextButton(
+                                  onPressed: () {
+                                    _pickImage(index, ImageSource.camera);
+                                    Navigator.pop(context);
+                                  },
+                                  child: Text('ถ่ายรูป'),
+                                ),
+                                TextButton(
+                                  onPressed: () {
+                                    _pickImage(index, ImageSource.gallery);
+                                    Navigator.pop(context);
+                                  },
+                                  child: Text('เลือกจากแกลเลอรี่'),
+                                ),
+                              ],
+                            ),
+                      );
+                    },
                     child: Container(
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(16),
                         color: Colors.white,
+                        border:
+                            imageFile != null
+                                ? Border.all(color: Colors.green, width: 3)
+                                : null,
                         boxShadow: [
                           BoxShadow(
                             color: Colors.black12,
@@ -110,7 +164,6 @@ class _CameraGridPageState extends State<CameraGridPage> {
                       ),
                       child: Stack(
                         children: [
-                          // ถ้ายังไม่มีภาพ แสดงไอคอน + ข้อความ
                           if (imageFile == null)
                             Center(
                               child: Column(
@@ -123,7 +176,7 @@ class _CameraGridPageState extends State<CameraGridPage> {
                                   ),
                                   SizedBox(height: 8),
                                   Text(
-                                    'กดเพื่อถ่ายรูป',
+                                    'กดเพื่อถ่ายรูปหรือเลือกภาพจากแกลเลอรี่',
                                     style: GoogleFonts.prompt(
                                       color: Colors.grey.shade700,
                                       fontSize: 14,
@@ -132,32 +185,7 @@ class _CameraGridPageState extends State<CameraGridPage> {
                                 ],
                               ),
                             ),
-
-                          // Label "รูป 1", "รูป 2", ...
-                          Positioned(
-                            top: 8,
-                            left: 8,
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 10,
-                                vertical: 4,
-                              ),
-                              decoration: BoxDecoration(
-                                color: Colors.black.withOpacity(0.5),
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Text(
-                                'รูป ${index + 1}',
-                                style: GoogleFonts.prompt(
-                                  color: Colors.white,
-                                  fontSize: 12,
-                                ),
-                              ),
-                            ),
-                          ),
-
-                          // ถ้ามีภาพ แสดงข้อความล่าง
-                          if (imageFile != null)
+                          if (imageFile != null) ...[
                             Align(
                               alignment: Alignment.bottomCenter,
                               child: Container(
@@ -176,12 +204,38 @@ class _CameraGridPageState extends State<CameraGridPage> {
                                 ),
                               ),
                             ),
+                            Positioned(
+                              bottom: 8,
+                              right: 8,
+                              child: Icon(
+                                Icons.check_circle,
+                                color: Colors.greenAccent.shade700,
+                                size: 28,
+                              ),
+                            ),
+                          ],
                         ],
                       ),
                     ),
                   );
                 },
               ),
+            ),
+            const SizedBox(height: 12),
+            ElevatedButton.icon(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: yellow,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 12,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
+              ),
+              onPressed: _saveImagesAndReturn,
+              icon: Icon(Icons.save),
+              label: Text('บันทึกรูป', style: GoogleFonts.prompt(fontSize: 16)),
             ),
           ],
         ),
