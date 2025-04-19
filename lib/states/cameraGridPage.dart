@@ -5,6 +5,8 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as path;
 import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:http/http.dart' as http;
+import 'package:permission_handler/permission_handler.dart';
 
 class CameraGridPage extends StatefulWidget {
   final String contractno;
@@ -18,33 +20,82 @@ class _CameraGridPageState extends State<CameraGridPage> {
   final ImagePicker _picker = ImagePicker();
   List<File?> _imageFiles = List.generate(6, (index) => null);
 
-  Future<void> _pickImage(int index, ImageSource source) async {
-    final pickedFile = await _picker.pickImage(source: source);
-    if (pickedFile != null) {
-      String newPath;
-      if (kIsWeb) {
-        newPath = pickedFile.path;
-      } else {
-        final directory = await getTemporaryDirectory();
-        newPath = path.join(
-          directory.path,
-          '${widget.contractno}_${String.fromCharCode(97 + index)}.jpg',
-        );
-      }
+  @override
+  void initState() {
+    super.initState();
+    _requestPermissions();
+  }
 
-      final newImage = File(newPath);
-      await newImage.writeAsBytes(await pickedFile.readAsBytes());
-
-      setState(() {
-        _imageFiles[index] = newImage;
-      });
+  // Request permissions for storage
+  Future<void> _requestPermissions() async {
+    var status = await Permission.storage.request();
+    if (status.isDenied) {
+      print("Storage permission denied");
+      // You can show a dialog or message asking the user to allow permissions
     }
   }
 
- void _saveImagesAndReturn() {
+  Future<void> _pickImage(int index, ImageSource source) async {
+    var status = await Permission.storage.status;
+    if (status.isGranted) {
+      final pickedFile = await _picker.pickImage(source: source);
+      if (pickedFile != null) {
+        String newPath;
+        if (kIsWeb) {
+          newPath = pickedFile.path;
+        } else {
+          final directory = await getTemporaryDirectory();
+          newPath = path.join(
+            directory.path,
+            '${widget.contractno}_${String.fromCharCode(65 + index)}.jpg',
+          );
+        }
+
+        final newImage = File(newPath);
+        await newImage.writeAsBytes(await pickedFile.readAsBytes());
+
+        setState(() {
+          _imageFiles[index] = newImage;
+        });
+      }
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('โปรดให้สิทธิ์การเข้าถึง Storage')),
+      );
+    }
+  }
+
+  Future<void> _uploadImages(List<File?> imageFiles) async {
+    final uri = Uri.parse(
+      'https://ppw.somjai.app/PPWSJ/api/appfollowup/picupload_api.php',
+    );
+
+    for (int i = 0; i < imageFiles.length; i++) {
+      if (imageFiles[i] != null) {
+        var request = http.MultipartRequest('POST', uri);
+        request.fields['contractno'] = widget.contractno;
+
+        var pic = await http.MultipartFile.fromPath(
+          'image', // ใช้ key เดียวกับที่ Postman ใช้
+          imageFiles[i]!.path,
+        );
+
+        request.files.add(pic);
+
+        var response = await request.send();
+
+        if (response.statusCode == 200) {
+          print('Image ${i + 1} uploaded successfully');
+        } else {
+          print('Failed to upload image ${i + 1}: ${response.statusCode}');
+        }
+      }
+    }
+  }
+
+  void _saveImagesAndReturn() {
     final fileNames = <String?>[];
 
-    // ตรวจสอบว่าไฟล์ใน _imageFiles มีค่าหรือไม่
     for (int i = 0; i < _imageFiles.length; i++) {
       final file = _imageFiles[i];
       if (file != null) {
@@ -54,17 +105,24 @@ class _CameraGridPageState extends State<CameraGridPage> {
       }
     }
 
-    // ตรวจสอบว่ามีไฟล์รูปภาพอย่างน้อย 1 รูปหรือไม่
     if (fileNames.any((file) => file != null)) {
-      // Log the values being sent
       print('Sending data to SaveRushPage');
       print('Contract No: ${widget.contractno}');
       print('File Names: $fileNames');
 
-      Navigator.pop(context, {
-        'contractno': widget.contractno,
-        'filenames': fileNames,
-      });
+      _uploadImages(_imageFiles)
+          .then((_) {
+            Navigator.pop(context, {
+              'contractno': widget.contractno,
+              'filenames': fileNames,
+            });
+          })
+          .catchError((e) {
+            print('Error uploading images: $e');
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('เกิดข้อผิดพลาดในการอัปโหลดรูปภาพ')),
+            );
+          });
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -73,7 +131,6 @@ class _CameraGridPageState extends State<CameraGridPage> {
       );
     }
   }
-
 
   @override
   Widget build(BuildContext context) {
@@ -114,7 +171,6 @@ class _CameraGridPageState extends State<CameraGridPage> {
                   final imageFile = _imageFiles[index];
                   return GestureDetector(
                     onTap: () {
-                      // Show dialog to choose between camera or gallery
                       showDialog(
                         context: context,
                         builder:
