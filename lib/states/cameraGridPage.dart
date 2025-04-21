@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -20,6 +21,10 @@ class CameraGridPage extends StatefulWidget {
 class _CameraGridPageState extends State<CameraGridPage> {
   final ImagePicker _picker = ImagePicker();
   List<File?> _imageFiles = List.generate(6, (index) => null);
+  List<TextEditingController> _textControllers = List.generate(
+    6,
+    (index) => TextEditingController(),
+  );
 
   @override
   void initState() {
@@ -101,6 +106,7 @@ class _CameraGridPageState extends State<CameraGridPage> {
 
     setState(() {
       _imageFiles[index] = null;
+      _textControllers[index].clear();
     });
   }
 
@@ -110,6 +116,7 @@ class _CameraGridPageState extends State<CameraGridPage> {
 
     setState(() {
       _imageFiles = List.generate(6, (index) => null);
+      _textControllers.forEach((controller) => controller.clear());
     });
   }
 
@@ -122,6 +129,8 @@ class _CameraGridPageState extends State<CameraGridPage> {
       if (imageFiles[i] != null) {
         var request = http.MultipartRequest('POST', uri);
         request.fields['contractno'] = widget.contractno;
+        request.fields['desc${String.fromCharCode(65 + i)}'] =
+            _textControllers[i].text;
 
         var pic = await http.MultipartFile.fromPath(
           'file${String.fromCharCode(65 + i)}',
@@ -133,9 +142,20 @@ class _CameraGridPageState extends State<CameraGridPage> {
         var response = await request.send();
 
         if (response.statusCode == 200) {
-          print('Image ${i + 1} uploaded successfully');
-        } else {
-          print('Failed to upload image ${i + 1}: ${response.statusCode}');
+          final respStr = await response.stream.bytesToString();
+          final decoded = json.decode(respStr);
+
+          if (decoded['status'] == 'success') {
+            final filename = decoded['file_name'];
+            if (filename != null && filename.isNotEmpty) {
+              setState(() {
+                _textControllers[i].text = filename;
+              });
+            }
+          }
+        }
+        else {
+          print('Failed to upload image ${i + 1}');
         }
       }
     }
@@ -158,12 +178,12 @@ class _CameraGridPageState extends State<CameraGridPage> {
           .then((_) {
             Navigator.pop(context, {
               'contractno': widget.contractno,
-              'pica': fileNames[0],
-              'picb': fileNames[1],
-              'picc': fileNames[2],
-              'picd': fileNames[3],
-              'pice': fileNames[4],
-              'picf': fileNames[5],
+              'pica': _textControllers[0].text,
+              'picb': _textControllers[1].text,
+              'picc': _textControllers[2].text,
+              'picd': _textControllers[3].text,
+              'pice': _textControllers[4].text,
+              'picf': _textControllers[5].text,
             });
           })
           .catchError((e) {
@@ -245,129 +265,138 @@ class _CameraGridPageState extends State<CameraGridPage> {
                 ),
                 itemBuilder: (context, index) {
                   final imageFile = _imageFiles[index];
-                  return GestureDetector(
-                    onTap: () {
-                      showDialog(
-                        context: context,
-                        builder:
-                            (context) => AlertDialog(
-                              title: Text('เลือกแหล่งที่มาของภาพ'),
-                              actions: [
-                                TextButton(
-                                  onPressed: () {
-                                    _pickImage(index, ImageSource.camera);
-                                    Navigator.pop(context);
-                                  },
-                                  child: Text('ถ่ายรูป'),
-                                ),
-                                TextButton(
-                                  onPressed: () {
-                                    _pickImage(index, ImageSource.gallery);
-                                    Navigator.pop(context);
-                                  },
-                                  child: Text('เลือกจากแกลเลอรี่'),
+                  return Column(
+                    children: [
+                      Expanded(
+                        child: GestureDetector(
+                          onTap: () {
+                            showDialog(
+                              context: context,
+                              builder:
+                                  (context) => AlertDialog(
+                                    title: Text('เลือกแหล่งที่มาของภาพ'),
+                                    actions: [
+                                      TextButton(
+                                        onPressed: () {
+                                          _pickImage(index, ImageSource.camera);
+                                          Navigator.pop(context);
+                                        },
+                                        child: Text('ถ่ายรูป'),
+                                      ),
+                                      TextButton(
+                                        onPressed: () {
+                                          _pickImage(
+                                            index,
+                                            ImageSource.gallery,
+                                          );
+                                          Navigator.pop(context);
+                                        },
+                                        child: Text('เลือกจากแกลเลอรี่'),
+                                      ),
+                                    ],
+                                  ),
+                            );
+                          },
+                          child: Container(
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(16),
+                              color: Colors.white,
+                              border:
+                                  imageFile != null
+                                      ? Border.all(
+                                        color: Colors.green,
+                                        width: 3,
+                                      )
+                                      : null,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black12,
+                                  blurRadius: 6,
+                                  offset: Offset(2, 4),
                                 ),
                               ],
+                              image:
+                                  imageFile != null
+                                      ? DecorationImage(
+                                        image: FileImage(imageFile),
+                                        fit: BoxFit.cover,
+                                      )
+                                      : null,
                             ),
-                      );
-                    },
-                    child: Container(
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(16),
-                        color: Colors.white,
-                        border:
-                            imageFile != null
-                                ? Border.all(color: Colors.green, width: 3)
-                                : null,
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black12,
-                            blurRadius: 6,
-                            offset: Offset(2, 4),
-                          ),
-                        ],
-                        image:
-                            imageFile != null
-                                ? DecorationImage(
-                                  image: FileImage(imageFile),
-                                  fit: BoxFit.cover,
-                                )
-                                : null,
-                      ),
-                      child: Stack(
-                        children: [
-                          if (imageFile == null)
-                            Center(
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(
-                                    Icons.camera_alt_rounded,
-                                    size: 40,
-                                    color: yellow,
+                            child: Stack(
+                              children: [
+                                if (imageFile == null)
+                                  Center(
+                                    child: Column(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      children: [
+                                        Icon(
+                                          Icons.camera_alt_rounded,
+                                          size: 40,
+                                          color: yellow,
+                                        ),
+                                        SizedBox(height: 8),
+                                        Text(
+                                          'กดเพื่อถ่ายรูปหรือเลือกภาพจากแกลเลอรี่',
+                                          style: GoogleFonts.prompt(
+                                            color: Colors.grey.shade700,
+                                            fontSize: 14,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
                                   ),
-                                  SizedBox(height: 8),
-                                  Text(
-                                    'กดเพื่อถ่ายรูปหรือเลือกภาพจากแกลเลอรี่',
-                                    style: GoogleFonts.prompt(
-                                      color: Colors.grey.shade700,
-                                      fontSize: 14,
+                                if (imageFile != null) ...[
+                                  Positioned(
+                                    top: 8,
+                                    right: 8,
+                                    child: GestureDetector(
+                                      onTap: () => _removeImage(index),
+                                      child: Container(
+                                        padding: EdgeInsets.all(4),
+                                        decoration: BoxDecoration(
+                                          color: Colors.redAccent,
+                                          shape: BoxShape.circle,
+                                        ),
+                                        child: Icon(
+                                          Icons.close,
+                                          color: Colors.white,
+                                          size: 18,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                  Positioned(
+                                    bottom: 8,
+                                    left: 8,
+                                    child: Icon(
+                                      Icons.check_circle,
+                                      color: Colors.greenAccent.shade700,
+                                      size: 28,
                                     ),
                                   ),
                                 ],
-                              ),
+                              ],
                             ),
-                          if (imageFile != null) ...[
-                            Positioned(
-                              top: 8,
-                              right: 8,
-                              child: GestureDetector(
-                                onTap: () => _removeImage(index),
-                                child: Container(
-                                  padding: EdgeInsets.all(4),
-                                  decoration: BoxDecoration(
-                                    color: Colors.redAccent,
-                                    shape: BoxShape.circle,
-                                  ),
-                                  child: Icon(
-                                    Icons.close,
-                                    color: Colors.white,
-                                    size: 18,
-                                  ),
-                                ),
-                              ),
-                            ),
-                            Align(
-                              alignment: Alignment.bottomCenter,
-                              child: Container(
-                                width: double.infinity,
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: 6,
-                                ),
-                                color: Colors.black54,
-                                child: Text(
-                                  'แตะอีกครั้งเพื่อถ่ายใหม่',
-                                  style: GoogleFonts.prompt(
-                                    color: Colors.white,
-                                    fontSize: 12,
-                                  ),
-                                  textAlign: TextAlign.center,
-                                ),
-                              ),
-                            ),
-                            Positioned(
-                              bottom: 8,
-                              left: 8,
-                              child: Icon(
-                                Icons.check_circle,
-                                color: Colors.greenAccent.shade700,
-                                size: 28,
-                              ),
-                            ),
-                          ],
-                        ],
+                          ),
+                        ),
                       ),
-                    ),
+                      SizedBox(height: 6),
+                      TextField(
+                        controller: _textControllers[index],
+                        readOnly: true,
+                        textAlign: TextAlign.center,
+                        style: GoogleFonts.prompt(fontSize: 14),
+                        decoration: InputDecoration(
+                          contentPadding: EdgeInsets.symmetric(vertical: 4),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          hintText: 'ชื่อไฟล์ภาพ',
+                        ),
+                      ),
+                    ],
                   );
                 },
               ),
