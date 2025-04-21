@@ -21,10 +21,7 @@ class CameraGridPage extends StatefulWidget {
 class _CameraGridPageState extends State<CameraGridPage> {
   final ImagePicker _picker = ImagePicker();
   List<File?> _imageFiles = List.generate(6, (index) => null);
-  List<TextEditingController> _textControllers = List.generate(
-    6,
-    (index) => TextEditingController(),
-  );
+  List<TextEditingController> _textControllers = List.generate( 6,(index) => TextEditingController(), );
 
   @override
   void initState() {
@@ -153,8 +150,7 @@ class _CameraGridPageState extends State<CameraGridPage> {
               });
             }
           }
-        }
-        else {
+        } else {
           print('Failed to upload image ${i + 1}');
         }
       }
