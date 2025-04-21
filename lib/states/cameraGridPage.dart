@@ -7,6 +7,7 @@ import 'package:path/path.dart' as path;
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:http/http.dart' as http;
 import 'package:permission_handler/permission_handler.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class CameraGridPage extends StatefulWidget {
   final String contractno;
@@ -24,14 +25,38 @@ class _CameraGridPageState extends State<CameraGridPage> {
   void initState() {
     super.initState();
     _requestPermissions();
+    _loadSavedImages();
   }
 
-  // Request permissions for storage
   Future<void> _requestPermissions() async {
     var status = await Permission.storage.request();
     if (status.isDenied) {
       print("Storage permission denied");
-      // You can show a dialog or message asking the user to allow permissions
+    }
+  }
+
+  Future<void> _saveImagePaths(int index, String imagePath) async {
+    final prefs = await SharedPreferences.getInstance();
+    List<String> savedPaths =
+        prefs.getStringList('imagePaths') ?? List.filled(6, '');
+    savedPaths[index] = imagePath;
+    await prefs.setStringList('imagePaths', savedPaths);
+  }
+
+  Future<void> _loadSavedImages() async {
+    final prefs = await SharedPreferences.getInstance();
+    List<String> savedPaths =
+        prefs.getStringList('imagePaths') ?? List.filled(6, '');
+
+    for (int i = 0; i < savedPaths.length; i++) {
+      if (savedPaths[i].isNotEmpty) {
+        final file = File(savedPaths[i]);
+        if (await file.exists()) {
+          setState(() {
+            _imageFiles[i] = file;
+          });
+        }
+      }
     }
   }
 
@@ -57,12 +82,35 @@ class _CameraGridPageState extends State<CameraGridPage> {
         setState(() {
           _imageFiles[index] = newImage;
         });
+
+        await _saveImagePaths(index, newPath);
       }
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('โปรดให้สิทธิ์การเข้าถึง Storage')),
       );
     }
+  }
+
+  Future<void> _removeImage(int index) async {
+    final prefs = await SharedPreferences.getInstance();
+    List<String> savedPaths =
+        prefs.getStringList('imagePaths') ?? List.filled(6, '');
+    savedPaths[index] = '';
+    await prefs.setStringList('imagePaths', savedPaths);
+
+    setState(() {
+      _imageFiles[index] = null;
+    });
+  }
+
+  Future<void> _clearAllImages() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setStringList('imagePaths', List.filled(6, ''));
+
+    setState(() {
+      _imageFiles = List.generate(6, (index) => null);
+    });
   }
 
   Future<void> _uploadImages(List<File?> imageFiles) async {
@@ -76,7 +124,7 @@ class _CameraGridPageState extends State<CameraGridPage> {
         request.fields['contractno'] = widget.contractno;
 
         var pic = await http.MultipartFile.fromPath(
-          'image', // ใช้ key เดียวกับที่ Postman ใช้
+          'file${String.fromCharCode(65 + i)}',
           imageFiles[i]!.path,
         );
 
@@ -106,15 +154,16 @@ class _CameraGridPageState extends State<CameraGridPage> {
     }
 
     if (fileNames.any((file) => file != null)) {
-      print('Sending data to SaveRushPage');
-      print('Contract No: ${widget.contractno}');
-      print('File Names: $fileNames');
-
       _uploadImages(_imageFiles)
           .then((_) {
             Navigator.pop(context, {
               'contractno': widget.contractno,
-              'filenames': fileNames,
+              'pica': fileNames[0],
+              'picb': fileNames[1],
+              'picc': fileNames[2],
+              'picd': fileNames[3],
+              'pice': fileNames[4],
+              'picf': fileNames[5],
             });
           })
           .catchError((e) {
@@ -147,6 +196,33 @@ class _CameraGridPageState extends State<CameraGridPage> {
         foregroundColor: Colors.white,
         elevation: 2,
         actions: [
+          IconButton(
+            icon: Icon(Icons.delete_forever),
+            onPressed: () {
+              showDialog(
+                context: context,
+                builder:
+                    (context) => AlertDialog(
+                      title: Text('ลบรูปทั้งหมด'),
+                      content: Text('คุณต้องการลบรูปภาพทั้งหมดใช่หรือไม่?'),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.pop(context),
+                          child: Text('ยกเลิก'),
+                        ),
+                        TextButton(
+                          onPressed: () {
+                            _clearAllImages();
+                            Navigator.pop(context);
+                          },
+                          child: Text('ลบทั้งหมด'),
+                        ),
+                      ],
+                    ),
+              );
+            },
+            tooltip: 'ลบทั้งหมด',
+          ),
           IconButton(
             icon: Icon(Icons.check),
             onPressed: _saveImagesAndReturn,
@@ -242,6 +318,25 @@ class _CameraGridPageState extends State<CameraGridPage> {
                               ),
                             ),
                           if (imageFile != null) ...[
+                            Positioned(
+                              top: 8,
+                              right: 8,
+                              child: GestureDetector(
+                                onTap: () => _removeImage(index),
+                                child: Container(
+                                  padding: EdgeInsets.all(4),
+                                  decoration: BoxDecoration(
+                                    color: Colors.redAccent,
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: Icon(
+                                    Icons.close,
+                                    color: Colors.white,
+                                    size: 18,
+                                  ),
+                                ),
+                              ),
+                            ),
                             Align(
                               alignment: Alignment.bottomCenter,
                               child: Container(
@@ -262,7 +357,7 @@ class _CameraGridPageState extends State<CameraGridPage> {
                             ),
                             Positioned(
                               bottom: 8,
-                              right: 8,
+                              left: 8,
                               child: Icon(
                                 Icons.check_circle,
                                 color: Colors.greenAccent.shade700,

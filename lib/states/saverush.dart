@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
+import 'package:intl/intl.dart'; // เพิ่มการ import สำหรับการแปลงวันที่
 import 'package:test_app/states/cameraGridPage.dart';
 
 class SaveRushPage extends StatefulWidget {
@@ -36,7 +37,7 @@ class _SaveRushPageState extends State<SaveRushPage> {
   List<Map<String, String>> _followTypes = [];
   String? _selectedFollowType;
 
-    // ✅ เพิ่มตรงนี้ เพื่อเก็บชื่อไฟล์รูปจากกล้อง
+  // ✅ เพิ่มตรงนี้ เพื่อเก็บชื่อไฟล์รูปจากกล้อง
   List<String?> imageFilenames = List.filled(6, null);
 
   @override
@@ -45,7 +46,7 @@ class _SaveRushPageState extends State<SaveRushPage> {
     _fetchFollowTypes();
   }
 
- String formatThaiDate(String input) {
+  String formatThaiDate(String input) {
     try {
       final parts = input.split('/'); // ['18','03','2568']
       if (parts.length == 3) {
@@ -256,15 +257,8 @@ class _SaveRushPageState extends State<SaveRushPage> {
           }
         });
         break;
-      case 2:
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('ℹ️ เมนูอื่น ๆ')));
-        break;
     }
   }
-
-  
 
   Widget _buildTextField({
     required String label,
@@ -272,6 +266,7 @@ class _SaveRushPageState extends State<SaveRushPage> {
     required TextEditingController controller,
     int maxLines = 1,
     TextInputType keyboardType = TextInputType.text,
+    FormFieldValidator<String>? validator, // 👈 เพิ่มบรรทัดนี้
   }) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
@@ -351,67 +346,87 @@ class _SaveRushPageState extends State<SaveRushPage> {
                     controller: _noteController,
                     maxLines: 3,
                   ),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 8),
-                    child: DropdownButtonFormField<String>(
-                      value: _selectedFollowType,
-                      hint: Text(
-                        'กรุณาเลือกประเภทการตาม',
-                        style: GoogleFonts.prompt(),
+                  _loadingFollowTypes
+                      ? CircularProgressIndicator()
+                      : DropdownButtonFormField<String>(
+                        decoration: InputDecoration(
+                          labelText: 'ประเภทการตาม',
+                          labelStyle: GoogleFonts.prompt(color: grey),
+                          filled: true,
+                          fillColor: Colors.white,
+                          contentPadding: EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 12,
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(14),
+                            borderSide: BorderSide(color: Colors.grey.shade300),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(14),
+                            borderSide: BorderSide(color: yellow, width: 1.5),
+                          ),
+                        ),
+                        items:
+                            _followTypes.map((followType) {
+                              return DropdownMenuItem<String>(
+                                value: followType['code'],
+                                child: Text(followType['label']!),
+                              );
+                            }).toList(),
+                        onChanged: (value) {
+                          setState(() {
+                            _selectedFollowType = value;
+                          });
+                        },
                       ),
-                      icon: Icon(Icons.arrow_drop_down, color: grey),
-                      decoration: InputDecoration(
-                        prefixIcon: Icon(Icons.list, color: yellow),
-                        filled: true,
-                        fillColor: Colors.white,
-                        contentPadding: EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 12,
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(14),
-                          borderSide: BorderSide(color: Colors.grey.shade300),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(14),
-                          borderSide: BorderSide(color: yellow, width: 1.5),
-                        ),
+                  SizedBox(height: 16),
+                  GestureDetector(
+                    onTap: () async {
+                      DateTime? selectedDate = await showDatePicker(
+                        context: context,
+                        initialDate: DateTime.now(),
+                        firstDate: DateTime(2000),
+                        lastDate: DateTime(2101),
+                      );
+                      if (selectedDate != null) {
+                        setState(() {
+                          _dueDateController.text = DateFormat(
+                            'dd/MM/yyyy',
+                          ).format(selectedDate);
+                        });
+                      }
+                    },
+                    child: AbsorbPointer(
+                      child: _buildTextField(
+                        label: 'วันนัดชำระ',
+                        icon: Icons.calendar_today,
+                        controller: _dueDateController,
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'กรุณากรอก วันนัดชำระ';
+                          }
+                          return null;
+                        },
                       ),
-                      onChanged:
-                          (value) =>
-                              setState(() => _selectedFollowType = value),
-                      items:
-                          _followTypes
-                              .map(
-                                (e) => DropdownMenuItem<String>(
-                                  value: e['code'],
-                                  child: Text(e['label']!),
-                                ),
-                              )
-                              .toList(),
                     ),
                   ),
-                  _buildTextField(
-                    label: 'วันนัดชำระ (วัน/เดือน/ปี)',
-                    icon: Icons.calendar_today,
-                    controller: _dueDateController,
-                    keyboardType: TextInputType.datetime,
-                  ),
+                  SizedBox(height: 16),
                   _buildTextField(
                     label: 'จำนวนเงิน',
-                    icon: Icons.attach_money,
+                    icon: Icons.money,
                     controller: _amountController,
                     keyboardType: TextInputType.number,
                   ),
                   _buildTextField(
                     label: 'ค่าติดตาม',
-                    icon: Icons.account_balance_wallet,
+                    icon: Icons.attach_money,
                     controller: _followFeeController,
                     keyboardType: TextInputType.number,
                   ),
                   _buildTextField(
                     label: 'ระยะไมล์',
-                    icon: Icons.gps_fixed,
+                    icon: Icons.car_repair,
                     controller: _mileageController,
                     keyboardType: TextInputType.number,
                   ),
@@ -421,21 +436,44 @@ class _SaveRushPageState extends State<SaveRushPage> {
                     controller: _locationController,
                   ),
                   SizedBox(height: 16),
+                  ElevatedButton(
+                    onPressed: _isSaving ? null : _submitForm,
+                    child:
+                        _isSaving
+                            ? CircularProgressIndicator()
+                            : Text('บันทึกข้อมูล'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: yellow,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      padding: EdgeInsets.symmetric(vertical: 14),
+                    ),
+                  ),
                 ],
               ),
             ),
           ),
-          if (_isSaving)
-            Center(child: CircularProgressIndicator(color: yellow)),
-        ],
-      ),
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _selectedIndex,
-        onTap: _onItemTapped,
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.save), label: 'บันทึก'),
-          BottomNavigationBarItem(icon: Icon(Icons.camera_alt), label: 'กล้อง'),
-          BottomNavigationBarItem(icon: Icon(Icons.menu), label: 'อื่น ๆ'),
+          // Bottom navigation bar
+          Positioned(
+            bottom: 0,
+            left: 0,
+            right: 0,
+            child: BottomNavigationBar(
+              currentIndex: _selectedIndex,
+              onTap: _onItemTapped,
+              items: [
+                BottomNavigationBarItem(
+                  icon: Icon(Icons.save),
+                  label: 'บันทึก',
+                ),
+                BottomNavigationBarItem(
+                  icon: Icon(Icons.camera),
+                  label: 'กล้อง',
+                ),
+              ],
+            ),
+          ),
         ],
       ),
     );
