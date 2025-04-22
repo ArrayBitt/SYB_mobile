@@ -20,7 +20,8 @@ class _MainMobileState extends State<MainMobile> {
   int _selectedIndex = 0;
   dynamic _data;
   bool _isLoading = false;
-  TextEditingController _searchController = TextEditingController(); // Controller สำหรับค้นหา
+  TextEditingController _searchController =
+      TextEditingController(); // Controller สำหรับค้นหา
   String _searchQuery = '';
 
   void _makePhoneCall(String phoneNumber) async {
@@ -33,7 +34,6 @@ class _MainMobileState extends State<MainMobile> {
       ).showSnackBar(SnackBar(content: Text('ไม่สามารถโทรออกได้')));
     }
   }
-
 
   static const List<Widget> _widgetOptions = <Widget>[
     Center(
@@ -266,42 +266,40 @@ class _MainMobileState extends State<MainMobile> {
                                               'ยอดผ่อน:',
                                               '${_data[index]['hpprice']} บาท',
                                             ),
-                                            
-                                              Row(
-                                                children: [
-                                                  Text(
-                                                    'เบอร์โทร:',
+
+                                            Row(
+                                              children: [
+                                                Text(
+                                                  'เบอร์โทร:',
+                                                  style: GoogleFonts.prompt(
+                                                    fontSize: 16,
+                                                  ),
+                                                ),
+                                                SizedBox(width: 10),
+                                                GestureDetector(
+                                                  onTap:
+                                                      () => _makePhoneCall(
+                                                        _data[index]['mobileno'],
+                                                      ),
+                                                  child: Text(
+                                                    _data[index]['mobileno'],
                                                     style: GoogleFonts.prompt(
                                                       fontSize: 16,
+                                                      fontWeight:
+                                                          FontWeight.w500,
+                                                      color: Colors.blue,
+                                                      decoration:
+                                                          TextDecoration
+                                                              .underline,
                                                     ),
                                                   ),
-                                                  SizedBox(width: 10),
-                                                  GestureDetector(
-                                                    onTap:
-                                                        () => _makePhoneCall(
-                                                          _data[index]['mobileno'],
-                                                        ),
-                                                    child: Text(
-                                                      _data[index]['mobileno'],
-                                                      style: GoogleFonts.prompt(
-                                                        fontSize: 16,
-                                                        fontWeight:
-                                                            FontWeight.w500,
-                                                        color: Colors.blue,
-                                                        decoration:
-                                                            TextDecoration
-                                                                .underline,
-                                                      ),
-                                                    ),
-                                                  ),
-                                                ],
-                                              ),
-                                              _buildDetailRow(
+                                                ),
+                                              ],
+                                            ),
+                                            _buildDetailRow(
                                               'ที่อยู่:',
                                               '${_data[index]['addressis']}',
                                             ),
-
-                                            
                                           ],
                                         ),
                                       ),
@@ -313,7 +311,6 @@ class _MainMobileState extends State<MainMobile> {
                           )
                           : Center(child: Text('ไม่พบข้อมูล')),
                 ),
-
               ],
             ),
           ),
@@ -347,7 +344,10 @@ class _MainMobileState extends State<MainMobile> {
   String _formatDate(String date) {
     try {
       DateTime parsedDate = DateTime.parse(date);
-      return DateFormat('dd/MM/yyyy').format(parsedDate);
+      String day = parsedDate.day.toString().padLeft(2, '0');
+      String month = parsedDate.month.toString().padLeft(2, '0');
+      String buddhistYear = (parsedDate.year + 543).toString();
+      return '$day/$month/$buddhistYear';
     } catch (e) {
       return date;
     }
@@ -373,7 +373,7 @@ class _MainMobileState extends State<MainMobile> {
             children: [
               Text('Contract No: ${contract['contractno']}'),
               Text('Username: ${contract['username']}'),
-              Text('Contract Date: ${contract['contractdate']}'),
+              Text('Contract Date: ${_formatDate(contract['contractdate'])}'),
               Text('HP Price: ${contract['hpprice']}'),
               Text('MobileNumber : ${contract['mobileno']}'),
               Text('Address : ${contract['addressis']}'),
@@ -392,7 +392,6 @@ class _MainMobileState extends State<MainMobile> {
                           (context) => SaveRushPage(
                             contractNo: contract['contractno'],
                             hpprice: contract['hpprice'],
-                            
                           ),
                     ),
                   );

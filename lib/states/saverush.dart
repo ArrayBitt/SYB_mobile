@@ -141,6 +141,11 @@ class _SaveRushPageState extends State<SaveRushPage> {
       return;
     }
 
+      // ✅ ตรวจสอบว่ามีการถ่ายภาพอย่างน้อย 1 ภาพ
+    final hasAtLeastOneImage = imageFilenames.any(
+      (filename) => filename != null && filename.trim().isNotEmpty,
+    );
+
     if (!_formKey.currentState!.validate()) {
       print('Form validation ไม่ผ่าน');
       return;
@@ -252,7 +257,15 @@ class _SaveRushPageState extends State<SaveRushPage> {
         ).then((result) {
           if (result != null && result is Map) {
             setState(() {
-              imageFilenames = List<String?>.from(result['filenames'] ?? []);
+              // รับค่าที่ส่งกลับจาก CameraGridPage
+              imageFilenames = [
+                result['pica'],
+                result['picb'],
+                result['picc'],
+                result['picd'],
+                result['pice'],
+                result['picf'],
+              ];
             });
           }
         });
@@ -375,43 +388,16 @@ class _SaveRushPageState extends State<SaveRushPage> {
                               );
                             }).toList(),
                         onChanged: (value) {
-                          setState(() {
-                            _selectedFollowType = value;
-                          });
+                          setState(() => _selectedFollowType = value);
                         },
                       ),
                   SizedBox(height: 16),
-                  GestureDetector(
-                    onTap: () async {
-                      DateTime? selectedDate = await showDatePicker(
-                        context: context,
-                        initialDate: DateTime.now(),
-                        firstDate: DateTime(2000),
-                        lastDate: DateTime(2101),
-                      );
-                      if (selectedDate != null) {
-                        setState(() {
-                          _dueDateController.text = DateFormat(
-                            'dd/MM/yyyy',
-                          ).format(selectedDate);
-                        });
-                      }
-                    },
-                    child: AbsorbPointer(
-                      child: _buildTextField(
-                        label: 'วันนัดชำระ',
-                        icon: Icons.calendar_today,
-                        controller: _dueDateController,
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'กรุณากรอก วันนัดชำระ';
-                          }
-                          return null;
-                        },
-                      ),
-                    ),
+                  _buildTextField(
+                    label: 'วันนัดชำระ',
+                    icon: Icons.date_range,
+                    controller: _dueDateController,
+                    keyboardType: TextInputType.datetime,
                   ),
-                  SizedBox(height: 16),
                   _buildTextField(
                     label: 'จำนวนเงิน',
                     icon: Icons.money,
@@ -426,35 +412,21 @@ class _SaveRushPageState extends State<SaveRushPage> {
                   ),
                   _buildTextField(
                     label: 'ระยะไมล์',
-                    icon: Icons.car_repair,
+                    icon: Icons.location_on,
                     controller: _mileageController,
                     keyboardType: TextInputType.number,
                   ),
                   _buildTextField(
                     label: 'สถานที่',
-                    icon: Icons.location_on,
+                    icon: Icons.place,
                     controller: _locationController,
+                    maxLines: 2,
                   ),
                   SizedBox(height: 16),
-                  ElevatedButton(
-                    onPressed: _isSaving ? null : _submitForm,
-                    child:
-                        _isSaving
-                            ? CircularProgressIndicator()
-                            : Text('บันทึกข้อมูล'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: yellow,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                      padding: EdgeInsets.symmetric(vertical: 14),
-                    ),
-                  ),
                 ],
               ),
             ),
           ),
-          // Bottom navigation bar
           Positioned(
             bottom: 0,
             left: 0,
@@ -468,8 +440,8 @@ class _SaveRushPageState extends State<SaveRushPage> {
                   label: 'บันทึก',
                 ),
                 BottomNavigationBarItem(
-                  icon: Icon(Icons.camera),
-                  label: 'กล้อง',
+                  icon: Icon(Icons.camera_alt),
+                  label: 'ถ่ายรูป',
                 ),
               ],
             ),
