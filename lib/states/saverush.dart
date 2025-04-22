@@ -30,6 +30,30 @@ class _SaveRushPageState extends State<SaveRushPage> {
   final TextEditingController _mileageController = TextEditingController();
   final TextEditingController _locationController = TextEditingController();
 
+  // ฟังก์ชันแปลงวันที่จาก ค.ศ. เป็น พ.ศ.
+  String convertToThaiDate(DateTime date) {
+    int year = date.year + 543; // เพิ่ม 543 ปี
+    return DateFormat(
+      'dd/MM/yyyy',
+    ).format(DateTime(year, date.month, date.day));
+  }
+
+  // ฟังก์ชันสำหรับเลือกวันที่
+  Future<void> _selectDate(BuildContext context) async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: DateTime.now(),
+      firstDate: DateTime(1900),
+      lastDate: DateTime(2100),
+    );
+
+    if (picked != null && picked != DateTime.now()) {
+      setState(() {
+        _dueDateController.text = convertToThaiDate(picked);
+      });
+    }
+  }
+
   int _selectedIndex = 0;
   bool _isSaving = false;
 
@@ -204,19 +228,45 @@ class _SaveRushPageState extends State<SaveRushPage> {
                     _buildInfoRow('สถานที่', _locationController.text),
                     SizedBox(height: 20),
                     ElevatedButton.icon(
-                      onPressed: () => Navigator.pop(dialogContext),
-                      icon: Icon(Icons.check),
-                      label: Text('ตกลง', style: TextStyle(fontSize: 16)),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.amber.shade700,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        padding: EdgeInsets.symmetric(
-                          horizontal: 32,
-                          vertical: 12,
-                        ),
-                      ),
+                      onPressed: () async {
+                        final amount = _amountController.text.trim();
+                        final followFee = _followFeeController.text.trim();
+
+                        // ตรวจสอบว่ามีทศนิยม 2 ตำแหน่งเท่านั้น
+                        final regex = RegExp(r'^\d+\.\d{2}$');
+
+                        if (!regex.hasMatch(amount) ||
+                            !regex.hasMatch(followFee)) {
+                          showDialog(
+                            context: context,
+                            builder: (BuildContext context) {
+                              return AlertDialog(
+                                title: Center(child: Text('รูปแบบไม่ถูกต้อง')),
+                                content: Center(
+                                  child: Text(
+                                    'กรุณากรอกจำนวนเงิน และค่าติดตามให้มีทศนิยม 2 ตำแหน่ง เช่น 100.00',
+                                  ),
+                                ),
+                                actions: [
+                                  TextButton(
+                                    onPressed: () {
+                                      Navigator.of(context).pop(); // ปิด Alert
+                                    },
+                                    child: Center(child: Text('ตกลง')),
+                                  ),
+                                ],
+                              );
+                            },
+                          );
+                          return; // ยกเลิกการส่งฟอร์ม
+                        }
+
+                        if (_formKey.currentState!.validate()) {
+                          // ... ทำการ submit ตามเดิม
+                        }
+                      },
+                      icon: Icon(Icons.save),
+                      label: Text('บันทึกข้อมูล'),
                     ),
                   ],
                 ),
@@ -255,20 +305,21 @@ class _SaveRushPageState extends State<SaveRushPage> {
             builder: (_) => CameraGridPage(contractno: widget.contractNo),
           ),
         ).then((result) {
-          if (result != null && result is Map) {
+          if (result != null && result is Map<String, String>) {
             setState(() {
-              // รับค่าที่ส่งกลับจาก CameraGridPage
+              // รับค่าที่ส่งกลับมาและเก็บไว้ใน imageFilenames
               imageFilenames = [
-                result['pica'],
-                result['picb'],
-                result['picc'],
-                result['picd'],
-                result['pice'],
-                result['picf'],
+                result['pica'] ?? '',
+                result['picb'] ?? '',
+                result['picc'] ?? '',
+                result['picd'] ?? '',
+                result['pice'] ?? '',
+                result['picf'] ?? '',
               ];
             });
           }
         });
+
         break;
     }
   }
@@ -317,102 +368,138 @@ class _SaveRushPageState extends State<SaveRushPage> {
   @override
   Widget build(BuildContext context) {
     final yellow = Colors.amber.shade700;
-    final grey = Colors.grey.shade900;
+    final grey = Colors.grey.shade300;
+
     return Scaffold(
-      backgroundColor: Colors.grey.shade100,
       appBar: AppBar(
-        title: Text('📋 ระบบจัดเก็บเร่งรัด', style: GoogleFonts.prompt()),
         backgroundColor: yellow,
-        foregroundColor: Colors.white,
-        elevation: 1,
+        title: Text(
+          'บันทึกข้อมูลการตามหนี้',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
       ),
-      body: Stack(
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Form(
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Form(
               key: _formKey,
-              child: ListView(
+              child: Column(
                 children: [
-                  Card(
-                    color: Colors.amber.shade50,
-                    elevation: 3,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                    child: ListTile(
-                      leading: Icon(Icons.receipt_long, color: grey),
-                      title: Text(
-                        'เลขสัญญา: ${widget.contractNo}',
-                        style: GoogleFonts.prompt(fontWeight: FontWeight.bold),
-                      ),
-                      subtitle: Text(
-                        'ยอดจัด: ${widget.hpprice} บาท',
-                        style: GoogleFonts.prompt(),
-                      ),
-                    ),
-                  ),
-                  SizedBox(height: 16),
                   _buildTextField(
                     label: 'ข้อความ',
-                    icon: Icons.notes,
+                    icon: Icons.note,
                     controller: _noteController,
                     maxLines: 3,
+                    validator:
+                        (value) => value!.isEmpty ? 'กรุณากรอกหมายเหตุ' : null,
                   ),
-                  _loadingFollowTypes
-                      ? CircularProgressIndicator()
-                      : DropdownButtonFormField<String>(
-                        decoration: InputDecoration(
-                          labelText: 'ประเภทการตาม',
-                          labelStyle: GoogleFonts.prompt(color: grey),
-                          filled: true,
-                          fillColor: Colors.white,
-                          contentPadding: EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 12,
-                          ),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(14),
-                            borderSide: BorderSide(color: Colors.grey.shade300),
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(14),
-                            borderSide: BorderSide(color: yellow, width: 1.5),
-                          ),
-                        ),
-                        items:
-                            _followTypes.map((followType) {
-                              return DropdownMenuItem<String>(
-                                value: followType['code'],
-                                child: Text(followType['label']!),
-                              );
-                            }).toList(),
-                        onChanged: (value) {
-                          setState(() => _selectedFollowType = value);
-                        },
+                  DropdownButtonFormField<String>(
+                    value: _selectedFollowType,
+                    items:
+                        _followTypes.map((type) {
+                          return DropdownMenuItem(
+                            value: type['code'],
+                            child: Text(type['label']!),
+                          );
+                        }).toList(),
+                    onChanged: (value) {
+                      setState(() {
+                        _selectedFollowType = value;
+                      });
+                    },
+                    decoration: InputDecoration(
+                      labelText: 'ประเภทการตาม',
+                      labelStyle: GoogleFonts.prompt(color: grey),
+                      prefixIcon: Icon(
+                        Icons.assignment_turned_in,
+                        color: yellow,
                       ),
-                  SizedBox(height: 16),
-                  _buildTextField(
-                    label: 'วันนัดชำระ',
-                    icon: Icons.date_range,
-                    controller: _dueDateController,
-                    keyboardType: TextInputType.datetime,
+                      filled: true,
+                      fillColor: Colors.white,
+                      contentPadding: EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: BorderSide(color: grey),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: BorderSide(color: yellow, width: 1.5),
+                      ),
+                    ),
                   ),
+                   SizedBox(height: 12),
+                  TextFormField(
+                    controller: _dueDateController,
+                    decoration: InputDecoration(
+                      labelText: 'เลือกวันที่นัดชำระ',
+                      prefixIcon: Icon(
+                        Icons.calendar_today,
+                        color:
+                            _dueDateController.text.isEmpty
+                                ? Colors.grey
+                                : Colors.orange, // ไอคอนจะเป็นสีส้มถ้าเลือกแล้ว
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderSide: BorderSide(
+                          color: Colors.grey.shade300, // สีขอบเมื่อไม่ได้เลือก
+                          width: 2.0,
+                        ),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderSide: BorderSide(
+                          color: Colors.orange, // สีขอบเมื่อมีโฟกัส
+                          width: 2.0,
+                        ),
+                      ),
+                      labelStyle: TextStyle(
+                        color:
+                            _dueDateController.text.isEmpty
+                                ? Colors.grey
+                                : Colors.orange, // สีตัวอักษรของ label
+                      ),
+                    ),
+                    readOnly: true,
+                    onTap: () => _selectDate(context),
+                  ),
+                     SizedBox(height: 12),
                   _buildTextField(
                     label: 'จำนวนเงิน',
                     icon: Icons.money,
                     controller: _amountController,
                     keyboardType: TextInputType.number,
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'กรุณากรอกจำนวนเงิน';
+                      }
+                      if (!RegExp(r'^\d+\.00$').hasMatch(value)) {
+                        return 'จำนวนเงินต้องลงท้ายด้วย .00';
+                      }
+                      return null;
+                    },
                   ),
                   _buildTextField(
                     label: 'ค่าติดตาม',
                     icon: Icons.attach_money,
                     controller: _followFeeController,
                     keyboardType: TextInputType.number,
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'กรุณากรอกค่าติดตาม';
+                      }
+                      if (!RegExp(r'^\d+\.00$').hasMatch(value)) {
+                        return 'ค่าติดตามต้องลงท้ายด้วย .00';
+                      }
+                      return null;
+                    },
                   ),
                   _buildTextField(
                     label: 'ระยะไมล์',
-                    icon: Icons.location_on,
+                    icon: Icons.directions_car,
                     controller: _mileageController,
                     keyboardType: TextInputType.number,
                   ),
@@ -420,23 +507,34 @@ class _SaveRushPageState extends State<SaveRushPage> {
                     label: 'สถานที่',
                     icon: Icons.location_on,
                     controller: _locationController,
+                    validator:
+                        (value) => value!.isEmpty ? 'กรุณากรอกสถานที่' : null,
                   ),
+                  SizedBox(height: 12),
+
+                  SizedBox(height: 20),
                 ],
               ),
             ),
-          ),
-          if (_isSaving)
-            Center(child: CircularProgressIndicator()),
-        ],
+          ],
+        ),
       ),
       bottomNavigationBar: BottomNavigationBar(
+        type: BottomNavigationBarType.fixed,
+        backgroundColor: Colors.white,
+        selectedItemColor: Colors.amber[800],
+        unselectedItemColor: Colors.grey,
+        showUnselectedLabels: true,
+        selectedLabelStyle: GoogleFonts.prompt(fontWeight: FontWeight.w600),
+        unselectedLabelStyle: GoogleFonts.prompt(),
         currentIndex: _selectedIndex,
-        onTap: _onItemTapped,
+        onTap: (index) {
+          if (!_isSaving) {
+            _onItemTapped(index);
+          }
+        },
         items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.save),
-            label: 'บันทึก',
-          ),
+          BottomNavigationBarItem(icon: Icon(Icons.save), label: 'บันทึก'),
           BottomNavigationBarItem(
             icon: Icon(Icons.camera_alt),
             label: 'ถ่ายภาพ',
@@ -445,4 +543,5 @@ class _SaveRushPageState extends State<SaveRushPage> {
       ),
     );
   }
+
 }

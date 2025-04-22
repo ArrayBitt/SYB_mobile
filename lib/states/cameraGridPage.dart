@@ -14,6 +14,9 @@ class CameraGridPage extends StatefulWidget {
   final String contractno;
   const CameraGridPage({Key? key, required this.contractno}) : super(key: key);
 
+
+  
+
   @override
   State<CameraGridPage> createState() => _CameraGridPageState();
 }
@@ -32,6 +35,8 @@ class _CameraGridPageState extends State<CameraGridPage> {
     _requestPermissions();
     _loadSavedImages();
   }
+
+  
 
   Future<void> _requestPermissions() async {
     var status = await Permission.storage.request();
@@ -164,6 +169,7 @@ class _CameraGridPageState extends State<CameraGridPage> {
     }
   }
 
+
   void _saveImagesAndReturn() async {
     if (_imageFiles.any((file) => file != null)) {
       try {
@@ -171,10 +177,15 @@ class _CameraGridPageState extends State<CameraGridPage> {
           _imageFiles,
         );
 
-        Navigator.pop(context, {
-          'contractno': widget.contractno,
-          'fileNames': uploadedFileNames,
-        });
+        Map<String, String> imageData = {};
+        for (int i = 0; i < uploadedFileNames.length; i++) {
+          String key = 'pic${String.fromCharCode(97 + i)}'; // pica, picb, ...
+          imageData[key] = uploadedFileNames[i];
+        }
+
+        imageData['contractno'] = widget.contractno;
+
+        Navigator.pop(context, imageData);
       } catch (e) {
         print('❌ Error uploading images: $e');
         ScaffoldMessenger.of(context).showSnackBar(
@@ -189,6 +200,9 @@ class _CameraGridPageState extends State<CameraGridPage> {
       );
     }
   }
+
+
+  
 
   @override
   Widget build(BuildContext context) {
