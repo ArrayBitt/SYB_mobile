@@ -141,7 +141,7 @@ class _SaveRushPageState extends State<SaveRushPage> {
       return;
     }
 
-      // ✅ ตรวจสอบว่ามีการถ่ายภาพอย่างน้อย 1 ภาพ
+    // ✅ ตรวจสอบว่ามีการถ่ายภาพอย่างน้อย 1 ภาพ
     final hasAtLeastOneImage = imageFilenames.any(
       (filename) => filename != null && filename.trim().isNotEmpty,
     );
@@ -418,33 +418,28 @@ class _SaveRushPageState extends State<SaveRushPage> {
                   ),
                   _buildTextField(
                     label: 'สถานที่',
-                    icon: Icons.place,
+                    icon: Icons.location_on,
                     controller: _locationController,
-                    maxLines: 2,
                   ),
-                  SizedBox(height: 16),
                 ],
               ),
             ),
           ),
-          Positioned(
-            bottom: 0,
-            left: 0,
-            right: 0,
-            child: BottomNavigationBar(
-              currentIndex: _selectedIndex,
-              onTap: _onItemTapped,
-              items: [
-                BottomNavigationBarItem(
-                  icon: Icon(Icons.save),
-                  label: 'บันทึก',
-                ),
-                BottomNavigationBarItem(
-                  icon: Icon(Icons.camera_alt),
-                  label: 'ถ่ายรูป',
-                ),
-              ],
-            ),
+          if (_isSaving)
+            Center(child: CircularProgressIndicator()),
+        ],
+      ),
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: _selectedIndex,
+        onTap: _onItemTapped,
+        items: const [
+          BottomNavigationBarItem(
+            icon: Icon(Icons.save),
+            label: 'บันทึก',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.camera_alt),
+            label: 'ถ่ายภาพ',
           ),
         ],
       ),

@@ -119,19 +119,20 @@ class _CameraGridPageState extends State<CameraGridPage> {
       _textControllers.forEach((controller) => controller.clear());
     });
   }
-Future<void> _uploadImagesToPicUploadAPI(List<File?> imageFiles) async {
+
+  Future<List<String>> _uploadImagesToPicUploadAPI(
+    List<File?> imageFiles,
+  ) async {
     final uri = Uri.parse(
       'https://ppw.somjai.app/PPWSJ/api/appfollowup/picupload_api.php',
     );
 
     var request = http.MultipartRequest('POST', uri);
 
-    // ส่งไฟล์จาก _imageFiles ไปยัง API
     for (int i = 0; i < imageFiles.length; i++) {
       if (imageFiles[i] != null) {
-        // ใช้ชื่อฟิลด์ตามที่กำหนดใน PHP เช่น fileA, fileB, ...
         var pic = await http.MultipartFile.fromPath(
-          'file${String.fromCharCode(65 + i)}', // fileA, fileB, fileC, ...
+          'file${String.fromCharCode(65 + i)}',
           imageFiles[i]!.path,
         );
         request.files.add(pic);
@@ -145,57 +146,41 @@ Future<void> _uploadImagesToPicUploadAPI(List<File?> imageFiles) async {
       final decoded = json.decode(respStr);
 
       if (decoded['status'] == 'success') {
-        print('Upload to picupload_api.php successful!');
-        List<String> fileNames = [];
-        for (int i = 0; i < imageFiles.length; i++) {
-          final file = imageFiles[i];
-          if (file != null) {
-            fileNames.add(path.basename(file.path));
+        print('✅ อัปโหลดเสร็จเรียบร้อย');
+
+        List<String> uploadedFileNames = [];
+        if (decoded['files'] != null) {
+          for (var f in decoded['files']) {
+            uploadedFileNames.add(f['file_name']);
           }
         }
 
-        // ส่งข้อมูลกลับไปยังหน้าถัดไป (saverush.dart)
-        Navigator.pop(context, {
-          'contractno': widget.contractno,
-          'fileNames': fileNames,
-        });
+        return uploadedFileNames;
       } else {
-        print('Failed to upload to picupload_api.php: ${decoded['message']}');
+        throw Exception('API Error: ${decoded['message']}');
       }
     } else {
-      print(
-        'Failed to send request to picupload_api.php. Status code: ${response.statusCode}',
-      );
+      throw Exception('HTTP Error ${response.statusCode}');
     }
   }
 
+  void _saveImagesAndReturn() async {
+    if (_imageFiles.any((file) => file != null)) {
+      try {
+        List<String> uploadedFileNames = await _uploadImagesToPicUploadAPI(
+          _imageFiles,
+        );
 
-  void _saveImagesAndReturn() {
-    final fileNames = <String?>[];
-
-    for (int i = 0; i < _imageFiles.length; i++) {
-      final file = _imageFiles[i];
-      if (file != null) {
-        fileNames.add(path.basename(file.path));
-      } else {
-        fileNames.add(null);
+        Navigator.pop(context, {
+          'contractno': widget.contractno,
+          'fileNames': uploadedFileNames,
+        });
+      } catch (e) {
+        print('❌ Error uploading images: $e');
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('เกิดข้อผิดพลาดในการอัปโหลดรูปภาพ')),
+        );
       }
-    }
-
-    if (fileNames.any((file) => file != null)) {
-      _uploadImagesToPicUploadAPI(_imageFiles)
-          .then((_) {
-            Navigator.pop(context, {
-              'contractno': widget.contractno,
-              'fileNames': fileNames,
-            });
-          })
-          .catchError((e) {
-            print('Error uploading images: $e');
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('เกิดข้อผิดพลาดในการอัปโหลดรูปภาพ')),
-            );
-          });
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -265,7 +250,7 @@ Future<void> _uploadImagesToPicUploadAPI(List<File?> imageFiles) async {
                   crossAxisCount: 2,
                   crossAxisSpacing: 10,
                   mainAxisSpacing: 10,
-                  childAspectRatio: 1,
+                  childAspectRatio: 0.9,
                 ),
                 itemCount: 6,
                 itemBuilder: (context, index) {
@@ -284,19 +269,54 @@ Future<void> _uploadImagesToPicUploadAPI(List<File?> imageFiles) async {
                           ),
                         ],
                       ),
-                      child:
-                          image == null
-                              ? Icon(
-                                Icons.camera_alt,
-                                size: 40,
-                                color: Colors.grey.shade600,
-                              )
-                              : ClipRRect(
-                                borderRadius: BorderRadius.circular(12),
-                                child: Image.file(image, fit: BoxFit.cover),
+                      child: Stack(
+                        children: [
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(12),
+                            child:
+                                image == null
+                                    ? Center(
+                                      child: Icon(
+                                        Icons.camera_alt,
+                                        size: 40,
+                                        color: Colors.grey.shade600,
+                                      ),
+                                    )
+                                    : Image.file(
+                                      image,
+                                      fit: BoxFit.cover,
+                                      width: double.infinity,
+                                      height: double.infinity,
+                                    ),
+                          ),
+                          if (image != null)
+                            Positioned(
+                              bottom: 8,
+                              left: 8,
+                              child: Container(
+                                padding: EdgeInsets.symmetric(
+                                  horizontal: 6,
+                                  vertical: 2,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: Colors.black.withOpacity(0.6),
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                child: Text(
+                                  path.basename(image.path),
+                                  style: GoogleFonts.prompt(
+                                    fontSize: 12,
+                                    color: Colors.white,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
                               ),
+                            ),
+                        ],
+                      ),
                     ),
                   );
+
                 },
               ),
             ),
