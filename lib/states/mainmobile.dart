@@ -392,6 +392,7 @@ class _MainMobileState extends State<MainMobile> {
                           (context) => SaveRushPage(
                             contractNo: contract['contractno'],
                             hpprice: contract['hpprice'],
+                            username: contract['username'],
                           ),
                     ),
                   );

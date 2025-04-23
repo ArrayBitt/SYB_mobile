@@ -9,11 +9,13 @@ import 'package:test_app/states/cameraGridPage.dart';
 class SaveRushPage extends StatefulWidget {
   final String contractNo;
   final String hpprice;
+  final String username;
 
   const SaveRushPage({
     Key? key,
     required this.contractNo,
     required this.hpprice,
+    required this.username,
   }) : super(key: key);
 
   @override
@@ -63,6 +65,8 @@ class _SaveRushPageState extends State<SaveRushPage> {
 
   // ✅ เพิ่มตรงนี้ เพื่อเก็บชื่อไฟล์รูปจากกล้อง
   List<String?> imageFilenames = List.filled(6, null);
+
+  String entryDate = DateFormat('yyyy-MM-dd').format(DateTime.now());
 
   @override
   void initState() {
@@ -241,23 +245,66 @@ class _SaveRushPageState extends State<SaveRushPage> {
                             context: context,
                             builder: (BuildContext context) {
                               return AlertDialog(
-                                title: Center(child: Text('รูปแบบไม่ถูกต้อง')),
-                                content: Center(
-                                  child: Text(
-                                    'กรุณากรอกจำนวนเงิน และค่าติดตามให้มีทศนิยม 2 ตำแหน่ง เช่น 100.00',
-                                  ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(20),
                                 ),
+                                backgroundColor: Colors.white,
+                                contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 24,
+                                  vertical: 20,
+                                ),
+                                title: Column(
+                                  children: [
+                                    Icon(
+                                      Icons.check_circle,
+                                      color: Colors.green,
+                                      size: 60,
+                                    ),
+                                    const SizedBox(height: 10),
+                                    Text(
+                                      'บันทึกสำเร็จ',
+                                      textAlign: TextAlign.center,
+                                      style: TextStyle(
+                                        fontSize: 20,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                content: Text(
+                                  'ข้อมูลถูกบันทึกเรียบร้อย',
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(fontSize: 16),
+                                ),
+                                actionsAlignment: MainAxisAlignment.center,
                                 actions: [
-                                  TextButton(
+                                  ElevatedButton(
+                                    style: ElevatedButton.styleFrom(
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 24,
+                                        vertical: 12,
+                                      ),
+                                      backgroundColor: Colors.green,
+                                    ),
                                     onPressed: () {
-                                      Navigator.of(context).pop(); // ปิด Alert
+                                      Navigator.of(context).pop();
                                     },
-                                    child: Center(child: Text('ตกลง')),
+                                    child: Text(
+                                      'ตกลง',
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 16,
+                                      ),
+                                    ),
                                   ),
                                 ],
                               );
                             },
                           );
+
                           return; // ยกเลิกการส่งฟอร์ม
                         }
 
@@ -432,16 +479,16 @@ class _SaveRushPageState extends State<SaveRushPage> {
                       ),
                     ),
                   ),
-                   SizedBox(height: 12),
+                  SizedBox(height: 12),
                   TextFormField(
                     controller: _dueDateController,
                     decoration: InputDecoration(
-                      labelText: 'เลือกวันที่นัดชำระ',
+                      labelText: 'วันที่นัดชำระ',
                       prefixIcon: Icon(
                         Icons.calendar_today,
                         color:
                             _dueDateController.text.isEmpty
-                                ? Colors.grey
+                                ? Colors.orange
                                 : Colors.orange, // ไอคอนจะเป็นสีส้มถ้าเลือกแล้ว
                       ),
                       enabledBorder: OutlineInputBorder(
@@ -459,14 +506,14 @@ class _SaveRushPageState extends State<SaveRushPage> {
                       labelStyle: TextStyle(
                         color:
                             _dueDateController.text.isEmpty
-                                ? Colors.grey
+                                ? const Color.fromARGB(255, 15, 15, 15)
                                 : Colors.orange, // สีตัวอักษรของ label
                       ),
                     ),
                     readOnly: true,
                     onTap: () => _selectDate(context),
                   ),
-                     SizedBox(height: 12),
+                  SizedBox(height: 12),
                   _buildTextField(
                     label: 'จำนวนเงิน',
                     icon: Icons.money,
@@ -543,5 +590,4 @@ class _SaveRushPageState extends State<SaveRushPage> {
       ),
     );
   }
-
 }
