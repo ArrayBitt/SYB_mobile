@@ -66,8 +66,6 @@ class _SaveRushPageState extends State<SaveRushPage> {
   // ✅ เพิ่มตรงนี้ เพื่อเก็บชื่อไฟล์รูปจากกล้อง
   List<String?> imageFilenames = List.filled(6, null);
 
-  String entryDate = DateFormat('yyyy-MM-dd').format(DateTime.now());
-
   @override
   void initState() {
     super.initState();
@@ -91,8 +89,11 @@ class _SaveRushPageState extends State<SaveRushPage> {
   }
 
   Future<void> _fetchFollowTypes() async {
+    //const url ='https://ppw.somjai.app/PPWSJ/api/appfollowup/get_followtype.php?followtype=M-1';
+
     const url =
-        'https://ppw.somjai.app/PPWSJ/api/appfollowup/get_followtype.php?followtype=M-1';
+        'http://171.102.194.54/TRAINING/PPWSJ/api/appfollowup/get_followtype.php?followtype=M-1';
+
     try {
       final res = await http.get(Uri.parse(url));
       if (res.statusCode == 200) {
@@ -118,14 +119,21 @@ class _SaveRushPageState extends State<SaveRushPage> {
   }
 
   Future<bool> _saveRush() async {
-    final String url =
-        'https://ppw.somjai.app/PPWSJ/api/appfollowup/up_saverush.php?contractno=${widget.contractNo}';
+     String currentDate = DateFormat('yyyyMMdd').format(DateTime.now());
+
+    String currentTime = DateFormat('HHmmss').format(DateTime.now());
+
+    final String url ='https://ppw.somjai.app/PPWSJ/api/appfollowup/up_saverush.php?contractno=${widget.contractNo}';
+
+    //final String url ='http://171.102.194.54/TRAINING/PPWSJ/api/appfollowup/up_saverush.php?contractno=${widget.contractNo}';
 
     final data = {
       'contractno': widget.contractNo,
       'memo': _noteController.text,
       'followtype': _selectedFollowType ?? '',
-      'meetingdate': formatThaiDate(_dueDateController.text), // ใช้แปลงวันที่
+      'meetingdate': formatThaiDate(_dueDateController.text),
+      'entrydate': currentDate,
+      'timeupdate': currentTime,
       'meetingamount': _amountController.text,
       'followamount': _followFeeController.text,
       'mileages': _mileageController.text,

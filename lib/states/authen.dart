@@ -25,6 +25,7 @@ class _AuthenPageState extends State<AuthenPage> {
       final username = _userController.text;
       final password = _passwordController.text;
       final url = 'https://ppw.somjai.app/PPWSJ/api/appfollowup/users.php';
+      //final url = 'http://171.102.194.54/TRAINING/PPWSJ/api/appfollowup/users.php';
 
       try {
         final response = await http.post(

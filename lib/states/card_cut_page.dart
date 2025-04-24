@@ -24,8 +24,9 @@ class _CardCutPageState extends State<CardCutPage> {
   }
 
   Future<void> loadPDF() async {
-    final url =
-        'https://ppw.somjai.app/PPWSJ/Formspdf/frm_hp_cardcut.php?p_dbmsname=ppwsjdbms&p_docno=${widget.contractNo}';
+    final url ='https://ppw.somjai.app/PPWSJ/Formspdf/frm_hp_cardcut.php?p_dbmsname=ppwsjdbms&p_docno=${widget.contractNo}';
+
+    //final url ='http://171.102.194.54/TRAINING/PPWSJ/Formspdf/frm_hp_cardcut.php?p_dbmsname=ppwsjdbms&p_docno=${widget.contractNo}';
 
     final response = await http.get(Uri.parse(url));
     final bytes = response.bodyBytes;

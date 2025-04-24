@@ -29,6 +29,8 @@ class _CameraGridPageState extends State<CameraGridPage> {
     (index) => TextEditingController(),
   );
 
+
+    String _getPrefKey() => 'imagePaths_${widget.contractno}';
   @override
   void initState() {
     super.initState();
@@ -45,18 +47,22 @@ class _CameraGridPageState extends State<CameraGridPage> {
     }
   }
 
+    // ✅ แก้ไขเพื่อใช้ key แยกตาม contractno
   Future<void> _saveImagePaths(int index, String imagePath) async {
     final prefs = await SharedPreferences.getInstance();
     List<String> savedPaths =
-        prefs.getStringList('imagePaths') ?? List.filled(6, '');
+        prefs.getStringList(_getPrefKey()) ?? List.filled(6, '');
     savedPaths[index] = imagePath;
-    await prefs.setStringList('imagePaths', savedPaths);
+    await prefs.setStringList(_getPrefKey(), savedPaths);
   }
 
+
+  
+  // ✅ แก้ไขเพื่อโหลด path ตาม contractno
   Future<void> _loadSavedImages() async {
     final prefs = await SharedPreferences.getInstance();
     List<String> savedPaths =
-        prefs.getStringList('imagePaths') ?? List.filled(6, '');
+        prefs.getStringList(_getPrefKey()) ?? List.filled(6, '');
 
     for (int i = 0; i < savedPaths.length; i++) {
       if (savedPaths[i].isNotEmpty) {
@@ -102,12 +108,13 @@ class _CameraGridPageState extends State<CameraGridPage> {
     }
   }
 
+  // ✅ แก้ไขเพื่อเคลียร์ path เฉพาะของ contractno นี้
   Future<void> _removeImage(int index) async {
     final prefs = await SharedPreferences.getInstance();
     List<String> savedPaths =
-        prefs.getStringList('imagePaths') ?? List.filled(6, '');
+        prefs.getStringList(_getPrefKey()) ?? List.filled(6, '');
     savedPaths[index] = '';
-    await prefs.setStringList('imagePaths', savedPaths);
+    await prefs.setStringList(_getPrefKey(), savedPaths);
 
     setState(() {
       _imageFiles[index] = null;
@@ -115,9 +122,10 @@ class _CameraGridPageState extends State<CameraGridPage> {
     });
   }
 
+  // ✅ แก้ไขให้ลบ path ทั้งหมดเฉพาะของ contractno นี้
   Future<void> _clearAllImages() async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setStringList('imagePaths', List.filled(6, ''));
+    await prefs.setStringList(_getPrefKey(), List.filled(6, ''));
 
     setState(() {
       _imageFiles = List.generate(6, (index) => null);
@@ -128,9 +136,9 @@ class _CameraGridPageState extends State<CameraGridPage> {
   Future<List<String>> _uploadImagesToPicUploadAPI(
     List<File?> imageFiles,
   ) async {
-    final uri = Uri.parse(
-      'https://ppw.somjai.app/PPWSJ/api/appfollowup/picupload_api.php',
-    );
+    final uri = Uri.parse('https://ppw.somjai.app/PPWSJ/api/appfollowup/picupload_api.php',);
+    //final uri = Uri.parse('http://171.102.194.54/TRAINING/PPWSJ/api/appfollowup/picupload_api.php',);
+
 
     var request = http.MultipartRequest('POST', uri);
 

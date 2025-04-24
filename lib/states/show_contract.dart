@@ -26,9 +26,10 @@ class _ShowContractPageState extends State<ShowContractPage> {
   }
 
   Future<void> fetchContractDetails() async {
-    final url = Uri.parse(
-      'https://ppw.somjai.app/PPWSJ/api/appfollowup/show_contract.php?contractno=${widget.contractNo}',
-    );
+    final url = Uri.parse('https://ppw.somjai.app/PPWSJ/api/appfollowup/show_contract.php?contractno=${widget.contractNo}',);
+    
+     // final url = Uri.parse('http://171.102.194.54/TRAINING/PPWSJ/api/appfollowup/show_contract.php?contractno=${widget.contractNo}',);
+
     final response = await http.get(url);
 
     if (response.statusCode == 200) {
@@ -55,8 +56,11 @@ class _ShowContractPageState extends State<ShowContractPage> {
   Future<void> _openCardCutPDF() async {
     final contractNo = contractData?['contractno'];
     if (contractNo != null && contractNo.toString().isNotEmpty) {
-      final url = Uri.parse(
-        'https://ppw.somjai.app/PPWSJ/Formspdf/frm_hp_cardcut.php?p_dbmsname=ppwsjdbms&p_docno=$contractNo',
+
+      final url = Uri.parse('https://ppw.somjai.app/PPWSJ/Formspdf/frm_hp_cardcut.php?p_dbmsname=ppwsjdbms&p_docno=$contractNo',
+
+      //final url = Uri.parse('http://171.102.194.54/TRAINING/PPWSJ/Formspdf/frm_hp_cardcut.php?p_dbmsname=ppwsjdbms&p_docno=$contractNo',
+
       );
       if (await canLaunchUrl(url)) {
         await launchUrl(url, mode: LaunchMode.externalApplication);

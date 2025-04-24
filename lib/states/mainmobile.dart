@@ -60,8 +60,13 @@ class _MainMobileState extends State<MainMobile> {
 
   Future<void> _fetchData() async {
     final username = widget.username;
-    final url =
-        'https://ppw.somjai.app/PPWSJ/api/appfollowup/contract_api.php?username=${widget.username}';
+    
+    final url ='https://ppw.somjai.app/PPWSJ/api/appfollowup/contract_api.php?username=${widget.username}';
+    
+    // connect training
+    //final url ='http://171.102.194.54/TRAINING/PPWSJ/api/appfollowup/contract_api.php?username=${widget.username}';
+
+  
 
     setState(() {
       _isLoading = true;
