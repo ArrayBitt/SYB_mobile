@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:google_fonts/google_fonts.dart';
 import 'package:ppw/states/card_cut_page.dart';
+import 'package:ppw/states/contract_image.dart';
 import 'package:ppw/states/followContract.dart';
 import 'package:url_launcher/url_launcher.dart'; // ✅ เพิ่มตรงนี้
 
@@ -103,7 +104,58 @@ class _ShowContractPageState extends State<ShowContractPage> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              _buildTitle('📌 ข้อมูลสัญญา'),
+                             Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  _buildTitle('📌 ข้อมูลสัญญา'),
+                                  ElevatedButton.icon(
+                                    onPressed: () {
+                                      final contractNo =
+                                          contractData?['contractno'];
+                                      if (contractNo != null &&
+                                          contractNo.toString().isNotEmpty) {
+                                        Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder:
+                                                (context) => ContractImagePage(
+                                                  contractNo: contractNo,
+                                                ),
+                                          ),
+                                        );
+                                      } else {
+                                        ScaffoldMessenger.of(
+                                          context,
+                                        ).showSnackBar(
+                                          SnackBar(
+                                            content: Text('ไม่พบเลขที่สัญญา'),
+                                          ),
+                                        );
+                                      }
+                                    },
+                                    icon: Icon(Icons.image, size: 18),
+                                    label: Text(
+                                      'ภาพสัญญา',
+                                      style: GoogleFonts.prompt(fontSize: 14),
+                                    ),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: Colors.teal[300],
+                                      foregroundColor: Colors.white,
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(10),
+                                      ),
+                                      padding: EdgeInsets.symmetric(
+                                        horizontal: 10,
+                                        vertical: 8,
+                                      ),
+                                      elevation: 2,
+                                    ),
+                                  ),
+                                ],
+                              ),
+
+                              
                               Divider(),
                               _buildDetailTile(
                                 Icons.receipt_long,
@@ -178,6 +230,7 @@ class _ShowContractPageState extends State<ShowContractPage> {
                               ),
                               Divider(),
                             ],
+                            
                           ),
                         ),
                       ),
@@ -213,6 +266,7 @@ class _ShowContractPageState extends State<ShowContractPage> {
                         );
                       }
                     },
+                    
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.amber[800],
                       foregroundColor: Colors.white,
