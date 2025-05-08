@@ -1,8 +1,28 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import 'package:test_app/states/mainmobile.dart';
+import 'package:ppw/states/mainmobile.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+
+
+Future<void> saveUserJson(Map<String, dynamic> user) async {
+  final prefs = await SharedPreferences.getInstance();
+  final jsonString = jsonEncode(user);
+  await prefs.setString('username', jsonString);
+}
+
+Future<Map<String, dynamic>?> getUserJson() async {
+  final prefs = await SharedPreferences.getInstance();
+  final jsonString = prefs.getString('username');
+  if (jsonString != null) {
+    return jsonDecode(jsonString);
+  }
+  return null;
+}
+
+
 
 class AuthenPage extends StatefulWidget {
   @override
@@ -15,6 +35,8 @@ class _AuthenPageState extends State<AuthenPage> {
   final _formKey = GlobalKey<FormState>();
   bool _isLoading = false;
   bool _isPasswordVisible = false;
+
+  
 
   Future<void> _login() async {
     if ((_formKey.currentState?.validate()) ?? false) {
@@ -48,6 +70,8 @@ class _AuthenPageState extends State<AuthenPage> {
           }
 
           if (loginSuccess) {
+            await saveUserJson({'username': username});
+
             Navigator.pushReplacement(
               context,
               MaterialPageRoute(

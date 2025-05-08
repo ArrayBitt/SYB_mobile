@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:google_fonts/google_fonts.dart';
-import 'package:test_app/states/card_cut_page.dart';
+import 'package:ppw/states/card_cut_page.dart';
+import 'package:ppw/states/followContract.dart';
 import 'package:url_launcher/url_launcher.dart'; // ✅ เพิ่มตรงนี้
 
 class ShowContractPage extends StatefulWidget {
@@ -230,13 +231,28 @@ class _ShowContractPageState extends State<ShowContractPage> {
                   ),
                 ),
                 SizedBox(width: 10),
-                Expanded(
+              Expanded(
                   child: ElevatedButton(
                     onPressed: () {
-                      Navigator.pop(context);
+                      final contractNo = contractData?['contractno'];
+                      if (contractNo != null &&
+                          contractNo.toString().isNotEmpty) {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder:
+                                (context) =>
+                                    FollowContractPage(contractNo: contractNo),
+                          ),
+                        );
+                      } else {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('ไม่พบเลขที่สัญญา')),
+                        );
+                      }
                     },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.grey,
+                      backgroundColor: Colors.blueGrey,
                       foregroundColor: Colors.white,
                       padding: EdgeInsets.symmetric(vertical: 14),
                       shape: RoundedRectangleBorder(
@@ -244,7 +260,7 @@ class _ShowContractPageState extends State<ShowContractPage> {
                       ),
                     ),
                     child: Text(
-                      'กลับ',
+                      'การติดตาม',
                       style: GoogleFonts.prompt(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
@@ -252,6 +268,8 @@ class _ShowContractPageState extends State<ShowContractPage> {
                     ),
                   ),
                 ),
+
+
               ],
             ),
           ),

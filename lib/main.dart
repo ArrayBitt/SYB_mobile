@@ -1,31 +1,30 @@
 import 'package:flutter/material.dart';
-import 'package:get_storage/get_storage.dart'; // เพิ่มตรงนี้
-import 'states/authen.dart'; // นำเข้าจากโฟลเดอร์ states
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:ppw/states/authen.dart'; // นำเข้าหน้าล็อกอิน
+import 'package:ppw/states/mainmobile.dart'; // นำเข้าหน้าหลัก
 
 void main() async {
-  WidgetsFlutterBinding.ensureInitialized(); // เพิ่มเพื่อให้ async ใน main ทำงานได้
-  await GetStorage.init(); // เรียกใช้งาน GetStorage ก่อนเริ่ม app
-  runApp(MyApp());
+  WidgetsFlutterBinding.ensureInitialized();
+   final userJson = await getUserJson(); // ใช้ฟังก์ชันที่คุณเขียนไว้
+
+  final prefs = await SharedPreferences.getInstance();
+  final String? username = userJson?['username']; 
+
+  runApp(MyApp(username: username));
 }
 
 class MyApp extends StatelessWidget {
+  final String? username;
+
+  MyApp({this.username});
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'Flutter Login',
       theme: ThemeData(primarySwatch: Colors.blue),
-      home: AuthenPage(),
-    );
-  }
-}
-
-class MainPage extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: Text('Main Page')),
-      body: Center(child: Text('ยินดีต้อนรับสู่หน้าแรกหลังจากล็อกอิน')),
+      home: username == null ? AuthenPage() : MainMobile(username: username!),
     );
   }
 }

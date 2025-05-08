@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart'; // เพิ่มการ import สำหรับการแปลงวันที่
-import 'package:test_app/states/cameraGridPage.dart';
+import 'package:ppw/states/cameraGridPage.dart';
 
 class SaveRushPage extends StatefulWidget {
   final String contractNo;
@@ -119,11 +119,15 @@ class _SaveRushPageState extends State<SaveRushPage> {
   }
 
   Future<bool> _saveRush() async {
-     String currentDate = DateFormat('yyyyMMdd').format(DateTime.now());
+    final now = DateTime.now();
+    final buddhistYear = now.year + 543;
+    final currentDate =
+        '$buddhistYear${now.month.toString().padLeft(2, '0')}${now.day.toString().padLeft(2, '0')}';
 
-    String currentTime = DateFormat('HHmmss').format(DateTime.now());
+    String currentTime = DateFormat('HH:mm:ss').format(DateTime.now());
 
-    final String url ='https://ppw.somjai.app/PPWSJ/api/appfollowup/up_saverush.php?contractno=${widget.contractNo}';
+    final String url =
+        'https://ppw.somjai.app/PPWSJ/api/appfollowup/up_saverush.php?contractno=${widget.contractNo}';
 
     //final String url ='http://171.102.194.54/TRAINING/PPWSJ/api/appfollowup/up_saverush.php?contractno=${widget.contractNo}';
 
@@ -226,6 +230,8 @@ class _SaveRushPageState extends State<SaveRushPage> {
                     ),
                     SizedBox(height: 16),
                     Divider(),
+
+                    _buildInfoRow('เลขที่สัญญา', widget.contractNo),
                     _buildInfoRow('ข้อความ', _noteController.text),
                     _buildInfoRow(
                       'ประเภทการตาม',
@@ -233,6 +239,7 @@ class _SaveRushPageState extends State<SaveRushPage> {
                         (e) => e['code'] == _selectedFollowType,
                       )['label']!,
                     ),
+                   
                     _buildInfoRow('วันนัดชำระ', _dueDateController.text),
                     _buildInfoRow('จำนวนเงิน', _amountController.text),
                     _buildInfoRow('ค่าติดตาม', _followFeeController.text),

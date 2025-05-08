@@ -3,9 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:test_app/states/authen.dart';
-import 'package:test_app/states/saverush.dart';
-import 'package:test_app/states/show_contract.dart';
+import 'package:ppw/states/authen.dart';
+import 'package:ppw/states/saverush.dart';
+import 'package:ppw/states/show_contract.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class MainMobile extends StatefulWidget {
@@ -16,13 +16,36 @@ class MainMobile extends StatefulWidget {
   _MainMobileState createState() => _MainMobileState();
 }
 
-class _MainMobileState extends State<MainMobile> {
+class _MainMobileState extends State<MainMobile> with WidgetsBindingObserver {
   int _selectedIndex = 0;
   dynamic _data;
   bool _isLoading = false;
-  TextEditingController _searchController =
-      TextEditingController(); // Controller สำหรับค้นหา
+  TextEditingController _searchController =TextEditingController(); // Controller สำหรับค้นหา
   String _searchQuery = '';
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this); // 👈 เพิ่ม observer
+    _fetchData(); // 👈 โหลดข้อมูลทันทีเมื่อเปิดแอป
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this); // 👈 ลบ observer ตอนปิด
+    super.dispose();
+  }
+
+ @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    print('App lifecycle state changed: $state'); // เพิ่ม print เพื่อดูสถานะ
+    if (state == AppLifecycleState.resumed) {
+      _fetchData();
+    }
+  }
+
+  
+  
 
   void _makePhoneCall(String phoneNumber) async {
     final Uri launchUri = Uri(scheme: 'tel', path: phoneNumber);
@@ -136,14 +159,10 @@ class _MainMobileState extends State<MainMobile> {
     );
   }
 
-  @override
-  void initState() {
-    super.initState();
-    _fetchData();
-  }
-
+ 
   @override
   Widget build(BuildContext context) {
+
     final titleStyle = GoogleFonts.prompt(
       fontSize: 20,
       color: Colors.black87,
