@@ -46,3 +46,5 @@ flutter:
   uses-material-design: true
   assets:
     - assets/icon/logo.png
+    - assets/icon/main_logo.png
+

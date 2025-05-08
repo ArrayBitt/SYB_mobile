@@ -230,6 +230,10 @@ class _MainMobileState extends State<MainMobile> with WidgetsBindingObserver {
                               itemCount: _data.length,
                               itemBuilder: (context, index) {
                                 String contractNo = _data[index]['contractno'];
+                                
+
+                               
+
                                 if (_searchQuery.isNotEmpty &&
                                     !contractNo.toLowerCase().contains(
                                       _searchQuery.toLowerCase(),
@@ -237,9 +241,9 @@ class _MainMobileState extends State<MainMobile> with WidgetsBindingObserver {
                                   return Container();
                                 }
 
-                                String formattedDate = _formatDate(
-                                  _data[index]['contractdate'],
-                                );
+                                String formattedDate = _formatDate( _data[index]['contractdate'],);
+
+                               
 
                                 return Padding(
                                   padding: const EdgeInsets.all(8.0),

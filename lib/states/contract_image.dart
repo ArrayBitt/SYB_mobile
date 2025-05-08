@@ -95,13 +95,30 @@ class _ContractImagePageState extends State<ContractImagePage> {
                 }
               },
               items:
-                  <String>['05', '02'].map<DropdownMenuItem<String>>((value) {
+                  <String>[
+                    '03',
+                    '04',
+                    '05',
+                    '06',
+                  ].map<DropdownMenuItem<String>>((value) {
+                    String label = '';
+                    switch (value) {
+                      case '03':
+                        label = 'สำเนาบัตรประชาชนผู้ซื้อ';
+                        break;
+                      case '04':
+                        label = 'สำเนาทะเบียนบ้านผู้ซื้อ';
+                        break;
+                      case '05':
+                        label = 'สำเนาบัตรประชาชนผู้ค้ำ';
+                        break;
+                      case '06':
+                        label = 'สำเนาทะเบียนบ้านผู้ค้ำ';
+                        break;
+                    }
                     return DropdownMenuItem<String>(
                       value: value,
-                      child: Text(
-                        value == '05' ? 'บัตรประชาชน' : 'ทะเบียนบ้าน',
-                        style: GoogleFonts.prompt(),
-                      ),
+                      child: Text(label, style: GoogleFonts.prompt()),
                     );
                   }).toList(),
             ),

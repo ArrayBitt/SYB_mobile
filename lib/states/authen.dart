@@ -134,17 +134,18 @@ class _AuthenPageState extends State<AuthenPage> {
             child: SingleChildScrollView(
               child: Column(
                 children: [
-                  ShaderMask(
-                    shaderCallback:
-                        (bounds) => LinearGradient(
-                          colors: [Colors.amber[700]!, Colors.orange[300]!],
-                        ).createShader(bounds),
-                    child: Icon(
-                      Icons.person_pin_rounded,
-                      size: 100,
-                      color: Colors.white,
+
+                 Container(
+                    width: 250,
+                    height: 250,
+                    padding: const EdgeInsets.all(8.0),
+                    child: Image.asset(
+                      'assets/icon/main_logo.png',
+                      fit: BoxFit.contain, // หรือ BoxFit.cover แล้วแต่ต้องการ
                     ),
                   ),
+
+
                   SizedBox(height: 20),
                   Text(
                     'เข้าสู่ระบบ',
