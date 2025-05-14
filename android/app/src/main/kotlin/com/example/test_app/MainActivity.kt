@@ -1,4 +1,4 @@
-package com.example.ppw
+package com.example.cjk
 
 import io.flutter.embedding.android.FlutterActivity
 

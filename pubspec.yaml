@@ -1,4 +1,4 @@
-name: ppw
+name: cjk
 description: "A new Flutter project."
 publish_to: 'none'
 
@@ -40,11 +40,11 @@ dev_dependencies:
 flutter_icons:
   android: true
   ios: true
-  image_path: "assets/icon/logo.png"
+  image_path: "assets/icon/logo_app_somjai.png"
 
 flutter:
   uses-material-design: true
   assets:
-    - assets/icon/logo.png
-    - assets/icon/main_logo.png
+    - assets/icon/somjai.png
+  
 

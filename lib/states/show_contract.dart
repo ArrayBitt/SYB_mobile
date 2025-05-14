@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:google_fonts/google_fonts.dart';
-import 'package:ppw/states/card_cut_page.dart';
-import 'package:ppw/states/contract_image.dart';
-import 'package:ppw/states/followContract.dart';
+import 'package:cjk/states/card_cut_page.dart';
+import 'package:cjk/states/contract_image.dart';
+import 'package:cjk/states/followContract.dart';
 import 'package:url_launcher/url_launcher.dart'; // ✅ เพิ่มตรงนี้
 
 class ShowContractPage extends StatefulWidget {
@@ -28,7 +28,7 @@ class _ShowContractPageState extends State<ShowContractPage> {
   }
 
   Future<void> fetchContractDetails() async {
-    final url = Uri.parse('https://ppw.somjai.app/PPWSJ/api/appfollowup/show_contract.php?contractno=${widget.contractNo}',);
+    final url = Uri.parse('https://ss.cjk-cr.com/CJK/api/appfollowup/show_contract.php?contractno=${widget.contractNo}',);
     
      // final url = Uri.parse('http://171.102.194.54/TRAINING/PPWSJ/api/appfollowup/show_contract.php?contractno=${widget.contractNo}',);
 
@@ -59,7 +59,7 @@ class _ShowContractPageState extends State<ShowContractPage> {
     final contractNo = contractData?['contractno'];
     if (contractNo != null && contractNo.toString().isNotEmpty) {
 
-      final url = Uri.parse('https://ppw.somjai.app/PPWSJ/Formspdf/frm_hp_cardcut.php?p_dbmsname=ppwsjdbms&p_docno=$contractNo',
+      final url = Uri.parse('https://ppw.somjai.app/CJKTRAINING/Formspdf/frm_hp_cardcut.php?p_dbmsname=ppwsjdbms&p_docno=$contractNo',
 
       //final url = Uri.parse('http://171.102.194.54/TRAINING/PPWSJ/Formspdf/frm_hp_cardcut.php?p_dbmsname=ppwsjdbms&p_docno=$contractNo',
 

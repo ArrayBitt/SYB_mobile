@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart'; // เพิ่มการ import สำหรับการแปลงวันที่
-import 'package:ppw/states/cameraGridPage.dart';
+import 'package:cjk/states/cameraGridPage.dart';
 
 class SaveRushPage extends StatefulWidget {
   final String contractNo;
@@ -58,6 +58,7 @@ class _SaveRushPageState extends State<SaveRushPage> {
 
   int _selectedIndex = 0;
   bool _isSaving = false;
+  bool _isCompleted = false;
 
   bool _loadingFollowTypes = true;
   List<Map<String, String>> _followTypes = [];
@@ -92,7 +93,7 @@ class _SaveRushPageState extends State<SaveRushPage> {
     //const url ='https://ppw.somjai.app/PPWSJ/api/appfollowup/get_followtype.php?followtype=M-1';
 
     const url =
-        'http://171.102.194.54/TRAINING/PPWSJ/api/appfollowup/get_followtype.php?followtype=M-1';
+        'https://ss.cjk-cr.com/CJK/api/appfollowup/get_followtype.php?followtype=M-1';
 
     try {
       final res = await http.get(Uri.parse(url));
@@ -119,29 +120,26 @@ class _SaveRushPageState extends State<SaveRushPage> {
   }
 
   Future<bool> _saveRush() async {
-    final now = DateTime.now();
-    final buddhistYear = now.year + 543;
-    final currentDate =
-        '$buddhistYear${now.month.toString().padLeft(2, '0')}${now.day.toString().padLeft(2, '0')}';
-
-    String currentTime = DateFormat('HH:mm:ss').format(DateTime.now());
+    DateTime now = DateTime.now();
+    String entryDate =
+        '${now.year + 543}${now.month.toString().padLeft(2, '0')}${now.day.toString().padLeft(2, '0')}';
+    String timeUpdate = DateFormat('HH:mm:ss').format(now);
 
     final String url =
-        'https://ppw.somjai.app/PPWSJ/api/appfollowup/up_saverush.php?contractno=${widget.contractNo}';
-
-    //final String url ='http://171.102.194.54/TRAINING/PPWSJ/api/appfollowup/up_saverush.php?contractno=${widget.contractNo}';
+        'https://ss.cjk-cr.com/CJK/api/appfollowup/up_saverush.php?contractno=${widget.contractNo}';
 
     final data = {
       'contractno': widget.contractNo,
       'memo': _noteController.text,
       'followtype': _selectedFollowType ?? '',
       'meetingdate': formatThaiDate(_dueDateController.text),
-      'entrydate': currentDate,
-      'timeupdate': currentTime,
+      'entrydate': entryDate,
+      'timeupdate': timeUpdate,
       'meetingamount': _amountController.text,
       'followamount': _followFeeController.text,
       'mileages': _mileageController.text,
       'maplocations': _locationController.text,
+      'checkrush': _isCompleted.toString(),
       'pica': imageFilenames.length > 0 ? imageFilenames[0] : '',
       'picb': imageFilenames.length > 1 ? imageFilenames[1] : '',
       'picc': imageFilenames.length > 2 ? imageFilenames[2] : '',
@@ -163,9 +161,28 @@ class _SaveRushPageState extends State<SaveRushPage> {
       print('📥 Response Code: ${res.statusCode}');
       print('📥 Response Body: ${res.body}');
 
-      return res.statusCode == 200;
+      if (res.statusCode == 200) {
+        final responseData = json.decode(res.body);
+        if (responseData['status'] == 'success') {
+          return true;
+        } else {
+          final msg = responseData['message'] ?? 'เกิดข้อผิดพลาดในการบันทึก';
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text(msg)));
+          return false;
+        }
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('การเชื่อมต่อกับเซิร์ฟเวอร์ล้มเหลว')),
+        );
+        return false;
+      }
     } catch (e) {
       print('❌ เกิดข้อผิดพลาดขณะส่งข้อมูล: $e');
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('เกิดข้อผิดพลาด: $e')));
       return false;
     }
   }
@@ -239,7 +256,7 @@ class _SaveRushPageState extends State<SaveRushPage> {
                         (e) => e['code'] == _selectedFollowType,
                       )['label']!,
                     ),
-                   
+
                     _buildInfoRow('วันนัดชำระ', _dueDateController.text),
                     _buildInfoRow('จำนวนเงิน', _amountController.text),
                     _buildInfoRow('ค่าติดตาม', _followFeeController.text),
@@ -473,7 +490,7 @@ class _SaveRushPageState extends State<SaveRushPage> {
                     },
                     decoration: InputDecoration(
                       labelText: 'ประเภทการตาม',
-                      labelStyle: GoogleFonts.prompt(color: grey),
+                      labelStyle: GoogleFonts.prompt(color: Colors.black),
                       prefixIcon: Icon(
                         Icons.assignment_turned_in,
                         color: yellow,
@@ -572,9 +589,46 @@ class _SaveRushPageState extends State<SaveRushPage> {
                     validator:
                         (value) => value!.isEmpty ? 'กรุณากรอกสถานที่' : null,
                   ),
-                  SizedBox(height: 12),
 
-                  SizedBox(height: 20),
+                  SizedBox(height: 16),
+
+                  DropdownButtonFormField<bool>(
+                    value: _isCompleted,
+                    items: const [
+                      DropdownMenuItem(
+                        value: false,
+                        child: Text('รอดำเนินการ'),
+                      ),
+                      DropdownMenuItem(value: true, child: Text('สำเร็จ')),
+                    ],
+                    onChanged: (value) {
+                      setState(() {
+                        _isCompleted = value!;
+                      });
+                    },
+                    decoration: InputDecoration(
+                      labelText: 'สถานะการดำเนินการ',
+                      labelStyle: GoogleFonts.prompt(color: Colors.black),
+                      prefixIcon: Icon(
+                        Icons.check_circle_outline,
+                        color: yellow,
+                      ),
+                      filled: true,
+                      fillColor: Colors.white,
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: BorderSide(color: grey),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: BorderSide(color: yellow, width: 1.5),
+                      ),
+                    ),
+                  ),
                 ],
               ),
             ),

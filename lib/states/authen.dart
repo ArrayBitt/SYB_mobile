@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import 'package:ppw/states/mainmobile.dart';
+import 'package:cjk/states/mainmobile.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -46,7 +46,7 @@ class _AuthenPageState extends State<AuthenPage> {
 
       final username = _userController.text;
       final password = _passwordController.text;
-      final url = 'https://ppw.somjai.app/PPWSJ/api/appfollowup/users.php';
+      final url = 'https://ss.cjk-cr.com/CJK/api/appfollowup/users.php';
       //final url = 'http://171.102.194.54/TRAINING/PPWSJ/api/appfollowup/users.php';
 
       try {
@@ -140,7 +140,7 @@ class _AuthenPageState extends State<AuthenPage> {
                     height: 250,
                     padding: const EdgeInsets.all(8.0),
                     child: Image.asset(
-                      'assets/icon/main_logo.png',
+                      'assets/icon/somjai.png',
                       fit: BoxFit.contain, // หรือ BoxFit.cover แล้วแต่ต้องการ
                     ),
                   ),
@@ -245,12 +245,7 @@ class _AuthenPageState extends State<AuthenPage> {
                                 onPressed: _login,
                                 style: ElevatedButton.styleFrom(
                                   padding: EdgeInsets.symmetric(vertical: 16),
-                                  backgroundColor: const Color.fromARGB(
-                                    255,
-                                    255,
-                                    196,
-                                    1,
-                                  ),
+                                  backgroundColor: const Color.fromARGB(255, 255, 43, 1),
                                   foregroundColor: Colors.grey[900],
                                   elevation: 4,
                                   shadowColor: Colors.amber.shade100,

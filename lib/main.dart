@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:ppw/states/authen.dart'; // นำเข้าหน้าล็อกอิน
-import 'package:ppw/states/mainmobile.dart'; // นำเข้าหน้าหลัก
+import 'package:cjk/states/authen.dart'; // นำเข้าหน้าล็อกอิน
+import 'package:cjk/states/mainmobile.dart'; // นำเข้าหน้าหลัก
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();

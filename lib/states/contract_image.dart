@@ -24,7 +24,7 @@ class _ContractImagePageState extends State<ContractImagePage> {
 
   void _getImagesByType(String documentType) async {
     final url =
-        'https://ppw.somjai.app/PPWSJ/api/appfollowup/get_image.php?contractno=${widget.contractNo}';
+        'https://ss.cjk-cr.com/CJK/api/appfollowup/get_cjk_image.php?contractno=${widget.contractNo}';
 
     try {
       final response = await http.get(Uri.parse(url));
@@ -32,13 +32,25 @@ class _ContractImagePageState extends State<ContractImagePage> {
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
 
-        if (data['status'] == 'success') {
-          List<Map<String, dynamic>> filteredImages = [];
-          for (var image in data['images']) {
-            if (image['document_type'] == documentType) {
-              filteredImages.add(image);
+        List<Map<String, dynamic>> filteredImages = [];
+
+        if (data is List) {
+          for (var item in data) {
+            if (item['images'] != null) {
+              for (var imgUrl in item['images']) {
+                final imageName = imgUrl.split('/').last;
+
+                // กรองภาพโดยใช้ประเภทเอกสาร เช่น '-10', '-11'
+                if (imageName.contains('$documentType.')) {
+                  filteredImages.add({
+                    'image_url': imgUrl,
+                    'image_name': imageName,
+                  });
+                }
+              }
             }
           }
+
           setState(() {
             _images = filteredImages;
           });
@@ -49,9 +61,15 @@ class _ContractImagePageState extends State<ContractImagePage> {
         }
       } else {
         print('Failed to load data');
+        setState(() {
+          _images = [];
+        });
       }
     } catch (e) {
       print('Error: $e');
+      setState(() {
+        _images = [];
+      });
     }
   }
 
@@ -96,24 +114,28 @@ class _ContractImagePageState extends State<ContractImagePage> {
               },
               items:
                   <String>[
-                    '03',
-                    '04',
-                    '05',
-                    '06',
+                    '01.1',
+                    '10', // รูปถ่ายคนซื้อ
+                    '11', // รูปถ่ายคนใช้
+                    '12', // รูปถ่ายคนค้ำ
+                    '13', // รูปถ่ายอาชีพ
                   ].map<DropdownMenuItem<String>>((value) {
                     String label = '';
                     switch (value) {
-                      case '03':
-                        label = 'สำเนาบัตรประชาชนผู้ซื้อ';
+                       case '01.1':
+                        label = 'บปช.';
                         break;
-                      case '04':
-                        label = 'สำเนาทะเบียนบ้านผู้ซื้อ';
+                      case '10':
+                        label = 'รูปถ่ายคนซื้อ';
                         break;
-                      case '05':
-                        label = 'สำเนาบัตรประชาชนผู้ค้ำ';
+                      case '11':
+                        label = 'รูปถ่ายคนใช้';
                         break;
-                      case '06':
-                        label = 'สำเนาทะเบียนบ้านผู้ค้ำ';
+                      case '12':
+                        label = 'รูปถ่ายคนค้ำ';
+                        break;
+                      case '13':
+                        label = 'รูปถ่ายอาชีพ';
                         break;
                     }
                     return DropdownMenuItem<String>(
@@ -150,12 +172,14 @@ class _ContractImagePageState extends State<ContractImagePage> {
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  ClipRRect(
+                                 ClipRRect(
                                     borderRadius: const BorderRadius.vertical(
                                       top: Radius.circular(20),
                                     ),
                                     child: Image.network(
-                                      image['image_url'],
+                                      image['image_url'] != null
+                                          ? image['image_url']
+                                          : '', // เช็คว่าไม่เป็น null ก่อน
                                       height: 800,
                                       width: double.infinity,
                                       fit: BoxFit.cover,
@@ -173,7 +197,9 @@ class _ContractImagePageState extends State<ContractImagePage> {
                                   Padding(
                                     padding: const EdgeInsets.all(16.0),
                                     child: Text(
-                                      image['image_name'],
+                                      image['image_name'] != null
+                                          ? image['image_name']
+                                          : '', // เช็คว่าไม่เป็น null ก่อน
                                       style: GoogleFonts.prompt(
                                         fontSize: 18,
                                         fontWeight: FontWeight.w600,
@@ -181,6 +207,8 @@ class _ContractImagePageState extends State<ContractImagePage> {
                                       ),
                                     ),
                                   ),
+
+
                                 ],
                               ),
                             ),
