@@ -40,6 +40,10 @@ class _SaveRushPageState extends State<SaveRushPage> {
     ).format(DateTime(year, date.month, date.day));
   }
 
+  String getStatusText(bool status) {
+    return status ? 'สำเร็จ' : 'รอดำเนินการ';
+  }
+
   // ฟังก์ชันสำหรับเลือกวันที่
   Future<void> _selectDate(BuildContext context) async {
     final DateTime? picked = await showDatePicker(
@@ -262,6 +266,11 @@ class _SaveRushPageState extends State<SaveRushPage> {
                     _buildInfoRow('ค่าติดตาม', _followFeeController.text),
                     _buildInfoRow('ระยะไมล์', _mileageController.text),
                     _buildInfoRow('สถานที่', _locationController.text),
+                    _buildInfoRow(
+                      'สถานะการดำเนินการ',
+                      getStatusText(_isCompleted),
+                    ),
+                   
                     SizedBox(height: 20),
                     ElevatedButton.icon(
                       onPressed: () async {

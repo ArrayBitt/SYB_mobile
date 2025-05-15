@@ -58,7 +58,7 @@ class _MainMobileState extends State<MainMobile> with WidgetsBindingObserver {
     }
   }
 
-  Future<void> _fetchData() async {
+ Future<void> _fetchData() async {
     final username = widget.username;
     final url =
         'https://ss.cjk-cr.com/CJK/api/appfollowup/contract_api.php?username=$username';
@@ -78,8 +78,20 @@ class _MainMobileState extends State<MainMobile> with WidgetsBindingObserver {
 
         if (data is List) {
           final filtered =
-              data.where((item) => item['checkrush'] != 'true').toList();
-          final chunked = _chunkData(filtered, 20);
+              data.where((item) {
+                final checkrush = item['checkrush'];
+                print('checkrush: "$checkrush" (${checkrush.runtimeType})');
+
+                if (checkrush == null) return true;
+
+                final value = checkrush.toString().toLowerCase().trim();
+                return value != 'true'; // กรองออกเฉพาะที่เป็น true เท่านั้น
+              }).toList();
+
+          print('จำนวนรายการหลังกรอง: ${filtered.length}');
+
+          final chunked = _chunkData(filtered, 20); // ถ้ามีฟังก์ชันแบ่งหน้า
+
           setState(() {
             _pagedData = chunked;
             _currentPage = 0;
@@ -104,6 +116,7 @@ class _MainMobileState extends State<MainMobile> with WidgetsBindingObserver {
       });
     }
   }
+
 
   List<List<dynamic>> _chunkData(List<dynamic> data, int chunkSize) {
     List<List<dynamic>> chunks = [];
@@ -337,18 +350,23 @@ class _MainMobileState extends State<MainMobile> with WidgetsBindingObserver {
                             _pagedData[pageIndex].where((contract) {
                               final contractNo =
                                   contract['contractno']
-                                      .toString()
-                                      .toLowerCase(); // การกรองจาก contractno
+                                      ?.toString()
+                                      .toLowerCase() ??
+                                  '';
                               final arName =
-                                  contract['arname']?.toLowerCase() ??
-                                  ''; // การกรองโดยชื่อของลูกค้า (arname)
-                              return _searchQuery.isEmpty ||
-                                  contractNo.contains(
-                                    _searchQuery.toLowerCase(),
-                                  ) || // ค้นหาจาก contractno
-                                  arName.contains(
-                                    _searchQuery.toLowerCase(),
-                                  ); // ค้นหาจาก arname
+                                  contract['arname']?.toLowerCase() ?? '';
+                              final checkrush = contract['checkrush'];
+
+                              if (checkrush == null ||
+                                  checkrush.toString().toLowerCase() !=
+                                      'true') {
+                                return _searchQuery.isEmpty ||
+                                    contractNo.contains(
+                                      _searchQuery.toLowerCase(),
+                                    ) ||
+                                    arName.contains(_searchQuery.toLowerCase());
+                              }
+                              return false;
                             }).toList();
 
                         return RefreshIndicator(
@@ -461,10 +479,32 @@ class _MainMobileState extends State<MainMobile> with WidgetsBindingObserver {
                   ),
               if (_pagedData.length > 1)
                 Padding(
-                  padding: const EdgeInsets.only(bottom: 10),
-                  child: Text(
-                    'หน้า ${_currentPage + 1} / ${_pagedData.length}',
-                    style: GoogleFonts.prompt(fontWeight: FontWeight.w600),
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.blue.shade50,
+                      borderRadius: BorderRadius.circular(20),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.blue.withOpacity(0.2),
+                          offset: Offset(0, 2),
+                          blurRadius: 6,
+                        ),
+                      ],
+                    ),
+                    child: Text(
+                      'หน้า ${_currentPage + 1} / ${_pagedData.length}',
+                      style: GoogleFonts.prompt(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 16,
+                        color: Colors.blue.shade700,
+                        letterSpacing: 0.8,
+                      ),
+                    ),
                   ),
                 ),
             ],
