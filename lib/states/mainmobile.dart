@@ -90,7 +90,7 @@ class _MainMobileState extends State<MainMobile> with WidgetsBindingObserver {
 
           print('จำนวนรายการหลังกรอง: ${filtered.length}');
 
-          final chunked = _chunkData(filtered, 20); // ถ้ามีฟังก์ชันแบ่งหน้า
+          final chunked = _chunkData(filtered, 2500); // ถ้ามีฟังก์ชันแบ่งหน้า
 
           setState(() {
             _pagedData = chunked;

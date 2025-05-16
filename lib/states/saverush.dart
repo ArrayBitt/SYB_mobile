@@ -1,6 +1,8 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:geocoding/geocoding.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart'; // เพิ่มการ import สำหรับการแปลงวันที่
@@ -31,6 +33,7 @@ class _SaveRushPageState extends State<SaveRushPage> {
   final TextEditingController _followFeeController = TextEditingController();
   final TextEditingController _mileageController = TextEditingController();
   final TextEditingController _locationController = TextEditingController();
+  final TextEditingController locationController = TextEditingController();
 
   // ฟังก์ชันแปลงวันที่จาก ค.ศ. เป็น พ.ศ.
   String convertToThaiDate(DateTime date) {
@@ -123,6 +126,59 @@ class _SaveRushPageState extends State<SaveRushPage> {
     }
   }
 
+  Future<void> _getCurrentLocationAndSetAddress() async {
+    bool serviceEnabled;
+    LocationPermission permission;
+
+    // ตรวจสอบว่าเปิด location service หรือยัง
+    serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    if (!serviceEnabled) {
+      // แจ้งเตือนให้เปิด GPS
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('กรุณาเปิด GPS')));
+      return;
+    }
+
+    // ขอสิทธิ์เข้าถึง location
+    permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
+      if (permission == LocationPermission.denied) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('ไม่ได้รับสิทธิ์ใช้งาน GPS')));
+        return;
+      }
+    }
+
+    if (permission == LocationPermission.deniedForever) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('สิทธิ์การใช้งาน GPS ถูกปฏิเสธถาวร')),
+      );
+      return;
+    }
+
+    // ดึงตำแหน่งพิกัด
+    Position position = await Geolocator.getCurrentPosition(
+      desiredAccuracy: LocationAccuracy.high,
+    );
+
+    // แปลงพิกัดเป็นชื่อสถานที่
+    List<Placemark> placemarks = await placemarkFromCoordinates(
+      position.latitude,
+      position.longitude,
+    );
+
+    if (placemarks.isNotEmpty) {
+      Placemark place = placemarks[0];
+      String address =
+          '${place.street ?? ''} ${place.subLocality ?? ''} ${place.locality ?? ''} ${place.administrativeArea ?? ''} ${place.postalCode ?? ''}';
+
+      _locationController.text = address.trim();
+    }
+  }
+
   Future<bool> _saveRush() async {
     DateTime now = DateTime.now();
     String entryDate =
@@ -142,7 +198,7 @@ class _SaveRushPageState extends State<SaveRushPage> {
       'meetingamount': _amountController.text,
       'followamount': _followFeeController.text,
       'mileages': _mileageController.text,
-      'maplocations': _locationController.text,
+      'maplocations': locationController.text,
       'checkrush': _isCompleted.toString(),
       'pica': imageFilenames.length > 0 ? imageFilenames[0] : '',
       'picb': imageFilenames.length > 1 ? imageFilenames[1] : '',
@@ -265,12 +321,12 @@ class _SaveRushPageState extends State<SaveRushPage> {
                     _buildInfoRow('จำนวนเงิน', _amountController.text),
                     _buildInfoRow('ค่าติดตาม', _followFeeController.text),
                     _buildInfoRow('ระยะไมล์', _mileageController.text),
-                    _buildInfoRow('สถานที่', _locationController.text),
+                    _buildInfoRow('สถานที่', locationController.text),
                     _buildInfoRow(
                       'สถานะการดำเนินการ',
                       getStatusText(_isCompleted),
                     ),
-                   
+
                     SizedBox(height: 20),
                     ElevatedButton.icon(
                       onPressed: () async {
@@ -411,14 +467,14 @@ class _SaveRushPageState extends State<SaveRushPage> {
         break;
     }
   }
-
-  Widget _buildTextField({
+Widget _buildTextField({
     required String label,
     required IconData icon,
     required TextEditingController controller,
+    Widget? suffixIcon,
     int maxLines = 1,
     TextInputType keyboardType = TextInputType.text,
-    FormFieldValidator<String>? validator, // 👈 เพิ่มบรรทัดนี้
+    FormFieldValidator<String>? validator,
   }) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
@@ -442,16 +498,20 @@ class _SaveRushPageState extends State<SaveRushPage> {
             borderRadius: BorderRadius.circular(14),
             borderSide: BorderSide(color: Colors.amber.shade800, width: 1.5),
           ),
+          suffixIcon: suffixIcon,
         ),
-        validator: (value) {
-          if (value == null || value.isEmpty) {
-            return 'กรุณากรอก $label';
-          }
-          return null;
-        },
+        validator:
+            validator ??
+            (value) {
+              if (value == null || value.isEmpty) {
+                return 'กรุณากรอก $label';
+              }
+              return null;
+            },
       ),
     );
   }
+
 
   @override
   Widget build(BuildContext context) {
@@ -594,10 +654,73 @@ class _SaveRushPageState extends State<SaveRushPage> {
                   _buildTextField(
                     label: 'สถานที่',
                     icon: Icons.location_on,
-                    controller: _locationController,
-                    validator:
-                        (value) => value!.isEmpty ? 'กรุณากรอกสถานที่' : null,
+                    controller: locationController,
+                    suffixIcon: IconButton(
+                      icon: Icon(Icons.my_location, color: Colors.red),
+                      onPressed: () async {
+                        try {
+                          // ขอสิทธิ์การเข้าถึงตำแหน่ง
+                          LocationPermission permission =
+                              await Geolocator.checkPermission();
+                          if (permission == LocationPermission.denied) {
+                            permission = await Geolocator.requestPermission();
+                            if (permission == LocationPermission.denied ||
+                                permission ==
+                                    LocationPermission.deniedForever) {
+                              return;
+                            }
+                          }
+
+                          // เช็คว่าเปิด location service หรือยัง
+                          bool serviceEnabled =
+                              await Geolocator.isLocationServiceEnabled();
+                          if (!serviceEnabled) {
+                            return;
+                          }
+
+                          // ดึงตำแหน่งปัจจุบัน
+                          Position position =
+                              await Geolocator.getCurrentPosition(
+                                desiredAccuracy: LocationAccuracy.high,
+                              );
+
+                          // แปลงพิกัดเป็นข้อมูลสถานที่
+                          List<Placemark> placemarks =
+                              await placemarkFromCoordinates(
+                                position.latitude,
+                                position.longitude,
+                                localeIdentifier: "th",
+                              );
+
+                          if (placemarks.isNotEmpty) {
+                            Placemark place = placemarks.first;
+
+                            // DEBUG: ดูค่าทุกตัว
+                            print('thoroughfare: ${place.thoroughfare}');
+                            print('locality: ${place.locality}');
+                            print('subLocality: ${place.subLocality}');
+                            print(
+                              'subAdministrativeArea: ${place.subAdministrativeArea}',
+                            );
+                            print(
+                              'administrativeArea: ${place.administrativeArea}',
+                            );
+                            print('postalCode: ${place.postalCode}');
+                            print('country: ${place.country}');
+
+                            // สร้างข้อความสถานที่
+                            String placeName =
+                                '${place.thoroughfare ?? ''} ${place.locality ?? ''} ${place.subAdministrativeArea ?? ''} ${place.administrativeArea ?? ''} ${place.postalCode ?? ''} ${place.country ?? ''}';
+
+                            locationController.text = placeName.trim();
+                          }
+                        } catch (e) {
+                          print('Error getting location: $e');
+                        }
+                      },
+                    ),
                   ),
+
 
                   SizedBox(height: 16),
 

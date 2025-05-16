@@ -59,7 +59,7 @@ class _ShowContractPageState extends State<ShowContractPage> {
     final contractNo = contractData?['contractno'];
     if (contractNo != null && contractNo.toString().isNotEmpty) {
 
-      final url = Uri.parse('https://ppw.somjai.app/CJKTRAINING/Formspdf/frm_hp_cardcut.php?p_dbmsname=ppwsjdbms&p_docno=$contractNo',
+      final url = Uri.parse('https://ss.cjk-cr.com/CJK/Formspdf/frm_hp_cardcut.php?p_dbmsname=ppwsjdbms&p_docno=$contractNo',
 
       //final url = Uri.parse('http://171.102.194.54/TRAINING/PPWSJ/Formspdf/frm_hp_cardcut.php?p_dbmsname=ppwsjdbms&p_docno=$contractNo',
 
