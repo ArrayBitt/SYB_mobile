@@ -28,9 +28,12 @@ class _ShowContractPageState extends State<ShowContractPage> {
   }
 
   Future<void> fetchContractDetails() async {
+
+
     final url = Uri.parse('https://ss.cjk-cr.com/CJK/api/appfollowup/show_contract.php?contractno=${widget.contractNo}',);
     
-     // final url = Uri.parse('http://171.102.194.54/TRAINING/PPWSJ/api/appfollowup/show_contract.php?contractno=${widget.contractNo}',);
+    //final url = Uri.parse('http://192.168.1.15/CJKTRAINING/api/appfollowup/show_contract.php?contractno=${widget.contractNo}',);
+    
 
     final response = await http.get(url);
 

@@ -23,8 +23,11 @@ class _ContractImagePageState extends State<ContractImagePage> {
   }
 
   void _getImagesByType(String documentType) async {
-    final url =
-        'https://ss.cjk-cr.com/CJK/api/appfollowup/get_cjk_image.php?contractno=${widget.contractNo}';
+    final url ='https://ss.cjk-cr.com/CJK/api/appfollowup/get_cjk_image.php?contractno=${widget.contractNo}';
+
+    //training 
+    //final url =
+        'http://192.168.1.15/CJKTRAINING/api/appfollowup/get_cjk_image.php?contractno=${widget.contractNo}';
 
     try {
       final response = await http.get(Uri.parse(url));

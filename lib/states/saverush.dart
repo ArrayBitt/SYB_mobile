@@ -27,6 +27,32 @@ class SaveRushPage extends StatefulWidget {
 class _SaveRushPageState extends State<SaveRushPage> {
   final _formKey = GlobalKey<FormState>();
 
+  String? _selectedPersonType;
+  String fperson = ''; // เก็บค่าประเภทบุคคลที่เลือกหรือกรอกเอง
+  bool _isOtherPerson = false;
+  TextEditingController _otherPersonController = TextEditingController();
+
+  String? _selectedaddressType;
+  String faddress = '';
+  bool _isOtherAdress = false;
+  TextEditingController _otherAdressController = TextEditingController();
+
+  String? _selectedfdatacarType;
+  String fdatacar = '';
+  bool _isOtherDatacar = false;
+  TextEditingController _otherDatacarController = TextEditingController();
+
+
+  String? _selectedareaType;
+  String farea = '';
+  bool _isOtherArea = false;
+  TextEditingController _otherAreaController = TextEditingController();
+
+  String? _selectedproperType;
+  String fproperty = '';
+  bool _isOtherProperty = false;
+  TextEditingController _otherPropertyController = TextEditingController();
+
   final TextEditingController _noteController = TextEditingController();
   final TextEditingController _dueDateController = TextEditingController();
   final TextEditingController _amountController = TextEditingController();
@@ -97,10 +123,10 @@ class _SaveRushPageState extends State<SaveRushPage> {
   }
 
   Future<void> _fetchFollowTypes() async {
-    //const url ='https://ppw.somjai.app/PPWSJ/api/appfollowup/get_followtype.php?followtype=M-1';
+    // const url = 'https://ss.cjk-cr.com/CJK/api/appfollowup/get_followtype.php?followtype=M-1';
 
     const url =
-        'https://ss.cjk-cr.com/CJK/api/appfollowup/get_followtype.php?followtype=M-1';
+        'http://192.168.1.15/CJKTRAINING/api/appfollowup/get_followtype.php?followtype=M-1';
 
     try {
       final res = await http.get(Uri.parse(url));
@@ -185,6 +211,47 @@ class _SaveRushPageState extends State<SaveRushPage> {
         '${now.year + 543}${now.month.toString().padLeft(2, '0')}${now.day.toString().padLeft(2, '0')}';
     String timeUpdate = DateFormat('HH:mm:ss').format(now);
 
+    double? latitude;
+    double? longitude;
+
+    String fperson =
+        _isOtherPerson
+            ? _otherPersonController.text
+            : (_selectedPersonType ?? '');
+
+    String faddress =
+        _isOtherAdress
+            ? _otherAdressController.text
+            : (_selectedaddressType ?? '');
+
+    String fdatacar =
+        _isOtherDatacar
+            ? _otherDatacarController.text
+            : (_selectedfdatacarType ?? '');
+
+
+     String farea =
+        _isOtherArea
+            ? _otherAreaController.text
+            : (_selectedareaType ?? '');
+
+
+              String fproperty =
+        _isOtherProperty
+            ? _otherPropertyController.text
+            : (_selectedproperType ?? '');
+
+    // ✅ ดึงตำแหน่งปัจจุบัน
+    try {
+      Position position = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high,
+      );
+      latitude = position.latitude;
+      longitude = position.longitude;
+    } catch (e) {
+      print('⚠️ ไม่สามารถดึงตำแหน่งได้: $e');
+    }
+
     final String url =
         'https://ss.cjk-cr.com/CJK/api/appfollowup/up_saverush.php?contractno=${widget.contractNo}';
 
@@ -200,6 +267,13 @@ class _SaveRushPageState extends State<SaveRushPage> {
       'mileages': _mileageController.text,
       'maplocations': locationController.text,
       'checkrush': _isCompleted.toString(),
+      'latitude': latitude?.toString() ?? '',
+      'longtitude': longitude?.toString() ?? '',
+      'fperson': fperson,
+      'faddress': faddress,
+      'fdatacar': fdatacar,
+      'farea': farea,
+      'fproperty': fproperty,
       'pica': imageFilenames.length > 0 ? imageFilenames[0] : '',
       'picb': imageFilenames.length > 1 ? imageFilenames[1] : '',
       'picc': imageFilenames.length > 2 ? imageFilenames[2] : '',
@@ -292,8 +366,8 @@ class _SaveRushPageState extends State<SaveRushPage> {
               insetPadding: EdgeInsets.symmetric(horizontal: 24),
               child: Padding(
                 padding: const EdgeInsets.all(24),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
+                child: ListView(
+                   padding: EdgeInsets.all(16),
                   children: [
                     Icon(Icons.check_circle, size: 64, color: Colors.green),
                     SizedBox(height: 16),
@@ -309,6 +383,11 @@ class _SaveRushPageState extends State<SaveRushPage> {
                     Divider(),
 
                     _buildInfoRow('เลขที่สัญญา', widget.contractNo),
+                    _buildInfoRow('ประเภทบุคคล', fperson),
+                    _buildInfoRow('ที่อยู่ติดตาม', faddress),
+                    _buildInfoRow('ข้อมูลรถ', fdatacar),
+                    _buildInfoRow('ผลการลงพื้นที่', farea),
+                    _buildInfoRow('ผลทรัพย์สิน', fproperty),
                     _buildInfoRow('ข้อความ', _noteController.text),
                     _buildInfoRow(
                       'ประเภทการตาม',
@@ -322,10 +401,7 @@ class _SaveRushPageState extends State<SaveRushPage> {
                     _buildInfoRow('ค่าติดตาม', _followFeeController.text),
                     _buildInfoRow('ระยะไมล์', _mileageController.text),
                     _buildInfoRow('สถานที่', locationController.text),
-                    _buildInfoRow(
-                      'สถานะการดำเนินการ',
-                      getStatusText(_isCompleted),
-                    ),
+                    _buildInfoRow('สถานะการดำเนินการ',getStatusText(_isCompleted), ),
 
                     SizedBox(height: 20),
                     ElevatedButton.icon(
@@ -467,7 +543,8 @@ class _SaveRushPageState extends State<SaveRushPage> {
         break;
     }
   }
-Widget _buildTextField({
+
+  Widget _buildTextField({
     required String label,
     required IconData icon,
     required TextEditingController controller,
@@ -512,11 +589,50 @@ Widget _buildTextField({
     );
   }
 
-
   @override
   Widget build(BuildContext context) {
     final yellow = Colors.amber.shade700;
     final grey = Colors.grey.shade300;
+
+    List<String> personTypes = [
+      'ผู้เช่าซื้อ',
+      'ผู้ค้ำประกัน',
+      'คนใช้รถ',
+      'ผู้ซื้อร่วม',
+      'อื่นๆ',
+    ];
+
+    List<String> adressTypes = [
+      'ที่อยู่ปัจจุบัน',
+      'ที่อยู่ตามทะเบียนราฎ',
+      'ที่ทำงาน',
+      'อื่นๆ',
+    ];
+
+     List<String> datacarTypes = [
+      'พบรถ',
+      'ไม่พบรถ',
+      'รถใช้นอกพื้นที่',
+      'รถจำนำ/ขาย',
+      'รถพังเสียหายไม่สามารถรับคืนได้',
+      'อื่นๆ',
+    ];
+
+
+      List<String> fareaTypes = [
+      'นัดชำระ',
+      'ติดตามต่อ',
+      'ส่งต่อสายงานอื่น',
+      'รถจำนำ/ขาย',
+      'ส่งเรื่องฝ่ายกฎหมาย',
+      'อื่นๆ',
+    ];
+
+
+    List<String> fproperTypes = [
+      'ไม่มีทรัพย์สิน',
+      'มีทรัพย์สิน',
+    ];
 
     return Scaffold(
       appBar: AppBar(
@@ -535,6 +651,451 @@ Widget _buildTextField({
               key: _formKey,
               child: Column(
                 children: [
+                  //_selectedPersonType
+                  DropdownButtonFormField<String>(
+                    value: _isOtherPerson ? 'อื่นๆ' : _selectedPersonType,
+                    items:
+                        personTypes.map((type) {
+                          return DropdownMenuItem(
+                            value: type,
+                            child: Text(type),
+                          );
+                        }).toList(),
+                    onChanged: (value) {
+                      setState(() {
+                        _selectedPersonType = value;
+                        if (value == 'อื่นๆ') {
+                          _isOtherPerson = true;
+                          _otherPersonController.text = '';
+                          fperson = ''; // เคลียร์ค่า fperson ก่อนกรอกใหม่
+                        } else {
+                          _isOtherPerson = false;
+                          fperson =
+                              value ??
+                              ''; // **อัพเดต fperson ให้เท่ากับค่าที่เลือก**
+                        }
+                      });
+                    },
+
+                    decoration: InputDecoration(
+                      labelText: 'ประเภทบุคคล',
+                      labelStyle: GoogleFonts.prompt(
+                        color: Colors.amber.shade700,
+                      ),
+                      prefixIcon: Icon(Icons.person, color: yellow),
+                      filled: true,
+                      fillColor: Colors.white,
+                      contentPadding: EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: BorderSide(color: grey),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: BorderSide(color: yellow, width: 1.5),
+                      ),
+                    ),
+                  ),
+                  SizedBox(height: 12),
+
+                  if (_isOtherPerson) ...[
+                    SizedBox(height: 12),
+                    TextFormField(
+                      controller: _otherPersonController,
+                      decoration: InputDecoration(
+                        labelText: 'กรุณาระบุประเภทบุคคล',
+                        prefixIcon: Icon(Icons.edit, color: yellow),
+                        filled: true,
+                        fillColor: Colors.white,
+                        contentPadding: EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 12,
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(14),
+                          borderSide: BorderSide(color: grey),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(14),
+                          borderSide: BorderSide(color: yellow, width: 1.5),
+                        ),
+                      ),
+                      onChanged: (val) {
+                        setState(() {
+                          fperson = val;
+                          print('กรอกอื่นๆ: $fperson');
+                        });
+                      },
+                      validator: (value) {
+                        if (_isOtherPerson &&
+                            (value == null || value.isEmpty)) {
+                          return 'กรุณาระบุประเภทบุคคล';
+                        }
+                        return null;
+                      },
+                    ),
+                  ],
+                  SizedBox(height: 12),
+
+                  //_selectedPersonType
+
+                  //_selectedaddressType
+                  DropdownButtonFormField<String>(
+                    value: _isOtherAdress ? 'อื่นๆ' : _selectedaddressType,
+                    items:
+                        adressTypes.map((type) {
+                          return DropdownMenuItem(
+                            value: type,
+                            child: Text(type),
+                          );
+                        }).toList(),
+                    onChanged: (value) {
+                      setState(() {
+                        _selectedaddressType = value;
+                        if (value == 'อื่นๆ') {
+                          _isOtherAdress = true;
+                          _otherAdressController.text = '';
+                          faddress = ''; // เคลียร์ค่า faddress
+                        } else {
+                          _isOtherAdress = false;
+                          faddress = value ?? ''; // ← ตรงนี้ควรอัปเดต faddress
+                        }
+                      });
+                    },
+
+                    decoration: InputDecoration(
+                      labelText: 'ที่อยู่ติดตาม',
+                      labelStyle: GoogleFonts.prompt(
+                        color: Colors.amber.shade700,
+                      ),
+                      prefixIcon: Icon(Icons.add_reaction_sharp, color: yellow),
+                      filled: true,
+                      fillColor: Colors.white,
+                      contentPadding: EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: BorderSide(color: grey),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: BorderSide(color: yellow, width: 1.5),
+                      ),
+                    ),
+                  ),
+                  SizedBox(height: 12),
+
+                  if (_isOtherAdress) ...[
+                    SizedBox(height: 12),
+                    TextFormField(
+                      controller: _otherAdressController,
+                      decoration: InputDecoration(
+                        labelText: 'กรุณาระบุที่อยู่ติดตาม',
+                        prefixIcon: Icon(Icons.edit, color: yellow),
+                        filled: true,
+                        fillColor: Colors.white,
+                        contentPadding: EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 12,
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(14),
+                          borderSide: BorderSide(color: grey),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(14),
+                          borderSide: BorderSide(color: yellow, width: 1.5),
+                        ),
+                      ),
+                      onChanged: (val) {
+                        setState(() {
+                          faddress = val;
+                          print('กรอกอื่นๆ ที่อยู่ติดตาม: $faddress');
+                        });
+                      },
+
+                      validator: (value) {
+                        if (_isOtherAdress &&
+                            (value == null || value.isEmpty)) {
+                          return 'กรุณาระบุประเภทบุคคล';
+                        }
+                        return null;
+                      },
+                    ),
+                  ],
+                  SizedBox(height: 12),
+
+                  //datacar
+
+                   DropdownButtonFormField<String>(
+                    value: _isOtherAdress ? 'อื่นๆ' : _selectedfdatacarType,
+                    items:
+                        datacarTypes.map((type) {
+                          return DropdownMenuItem(
+                            value: type,
+                            child: Text(type),
+                          );
+                        }).toList(),
+                    onChanged: (value) {
+                      setState(() {
+                        _selectedfdatacarType = value;
+                        if (value == 'อื่นๆ') {
+                          _isOtherDatacar = true;
+                          _otherDatacarController.text = '';
+                          fdatacar = ''; // เคลียร์ค่า fdatacar
+                        } else {
+                          _isOtherDatacar = false;
+                          fdatacar = value ?? ''; // ← ตรงนี้ควรอัปเดต fdatacar
+                        }
+                      });
+                    },
+
+                    decoration: InputDecoration(
+                      labelText: 'ข้อมูลรถ',
+                      labelStyle: GoogleFonts.prompt(
+                        color: Colors.amber.shade700,
+                      ),
+                      prefixIcon: Icon(Icons.car_crash, color: yellow),
+                      filled: true,
+                      fillColor: Colors.white,
+                      contentPadding: EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: BorderSide(color: grey),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: BorderSide(color: yellow, width: 1.5),
+                      ),
+                    ),
+                  ),
+                  SizedBox(height: 12),
+
+                  if (_isOtherDatacar) ...[
+                    SizedBox(height: 12),
+                    TextFormField(
+                      controller: _otherDatacarController,
+                      decoration: InputDecoration(
+                        labelText: 'กรุณาระบุข้อมูลรถ',
+                        prefixIcon: Icon(Icons.edit, color: yellow),
+                        filled: true,
+                        fillColor: Colors.white,
+                        contentPadding: EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 12,
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(14),
+                          borderSide: BorderSide(color: grey),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(14),
+                          borderSide: BorderSide(color: yellow, width: 1.5),
+                        ),
+                      ),
+                      onChanged: (val) {
+                        setState(() {
+                          fdatacar = val;
+                          print('กรอกอื่นๆ  ข้อมูลรถ: $fdatacar');
+                        });
+                      },
+
+                      validator: (value) {
+                        if (_isOtherDatacar &&
+                            (value == null || value.isEmpty)) {
+                          return 'กรุณาระบุประข้อมูลรถ';
+                        }
+                        return null;
+                      },
+                    ),
+                  ],
+                  SizedBox(height: 12),
+
+                  //area
+
+                  DropdownButtonFormField<String>(
+                    value:  _isOtherArea? 'อื่นๆ' : _selectedareaType,
+                    items:
+                        fareaTypes.map((type) {
+                          return DropdownMenuItem(
+                            value: type,
+                            child: Text(type),
+                          );
+                        }).toList(),
+                    onChanged: (value) {
+                      setState(() {
+                        _selectedareaType = value;
+                        if (value == 'อื่นๆ') {
+                          _isOtherArea = true;
+                          _otherAreaController.text = '';
+                          farea = ''; // เคลียร์ค่า farea
+                        } else {
+                          _isOtherArea = false;
+                          farea = value ?? ''; // ← ตรงนี้ควรอัปเดต farea
+                        }
+                      });
+                    },
+
+                    decoration: InputDecoration(
+                      labelText: 'ผลการลงพื้นที่',
+                      labelStyle: GoogleFonts.prompt(
+                        color: Colors.amber.shade700,
+                      ),
+                      prefixIcon: Icon(Icons.area_chart, color: yellow),
+                      filled: true,
+                      fillColor: Colors.white,
+                      contentPadding: EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: BorderSide(color: grey),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: BorderSide(color: yellow, width: 1.5),
+                      ),
+                    ),
+                  ),
+                  SizedBox(height: 12),
+
+                  if (_isOtherArea) ...[
+                    SizedBox(height: 12),
+                    TextFormField(
+                      controller: _otherAreaController,
+                      decoration: InputDecoration(
+                        labelText: 'กรุณาระบุผลการลงพื้นที่',
+                        prefixIcon: Icon(Icons.edit, color: yellow),
+                        filled: true,
+                        fillColor: Colors.white,
+                        contentPadding: EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 12,
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(14),
+                          borderSide: BorderSide(color: grey),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(14),
+                          borderSide: BorderSide(color: yellow, width: 1.5),
+                        ),
+                      ),
+                      onChanged: (val) {
+                        setState(() {
+                          farea = val;
+                          print('กรอกอื่นๆ ผลการลงพื้นที่: $farea');
+                        });
+                      },
+
+                      validator: (value) {
+                        if (_isOtherArea &&
+                            (value == null || value.isEmpty)) {
+                          return 'กรุณาระบุประผลการลงพื้นที่';
+                        }
+                        return null;
+                      },
+                    ),
+                  ],
+                  SizedBox(height: 12),
+
+                  //fproperty
+                    DropdownButtonFormField<String>(
+                    value: _isOtherProperty ? 'มีทรัพย์สิน' : _selectedproperType,
+                    items:
+                        fproperTypes.map((type) {
+                          return DropdownMenuItem(
+                            value: type,
+                            child: Text(type),
+                          );
+                        }).toList(),
+                    onChanged: (value) {
+                      setState(() {
+                        _selectedproperType = value;
+                        if (value == 'มีทรัพย์สิน') {
+                          _isOtherProperty = true;
+                          _otherPropertyController.text = '';
+                          fproperty = ''; // เคลียร์ค่า fproperty
+                        } else {
+                          _isOtherProperty = false;
+                          fproperty = value ?? ''; // ← ตรงนี้ควรอัปเดต fproperty
+                        }
+                      });
+                    },
+
+                    decoration: InputDecoration(
+                      labelText: 'ผลทรัพย์สิน',
+                      labelStyle: GoogleFonts.prompt(
+                        color: Colors.amber.shade700,
+                      ),
+                      prefixIcon: Icon(Icons.money_off, color: yellow),
+                      filled: true,
+                      fillColor: Colors.white,
+                      contentPadding: EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: BorderSide(color: grey),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: BorderSide(color: yellow, width: 1.5),
+                      ),
+                    ),
+                  ),
+                  SizedBox(height: 12),
+
+                  if (_isOtherProperty) ...[
+                    SizedBox(height: 12),
+                    TextFormField(
+                      controller: _otherPropertyController,
+                      decoration: InputDecoration(
+                        labelText: 'กรุณาระบุทรัพย์สิน',
+                        prefixIcon: Icon(Icons.edit, color: yellow),
+                        filled: true,
+                        fillColor: Colors.white,
+                        contentPadding: EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 12,
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(14),
+                          borderSide: BorderSide(color: grey),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(14),
+                          borderSide: BorderSide(color: yellow, width: 1.5),
+                        ),
+                      ),
+                      onChanged: (val) {
+                        setState(() {
+                          fproperty = val;
+                          print('มีทรัพย์สิน: $fproperty');
+                        });
+                      },
+
+                      validator: (value) {
+                        if (_isOtherProperty && (value == null || value.isEmpty)) {
+                          return 'กรุณาระบุประทรัพย์สิน';
+                        }
+                        return null;
+                      },
+                    ),
+                  ],
+                  SizedBox(height: 12),
+
+                  //_selectedaddressType
                   _buildTextField(
                     label: 'ข้อความ',
                     icon: Icons.note,
@@ -656,10 +1217,10 @@ Widget _buildTextField({
                     icon: Icons.location_on,
                     controller: locationController,
                     suffixIcon: IconButton(
-                      icon: Icon(Icons.my_location, color: Colors.red),
+                      icon: Icon(Icons.location_on),
                       onPressed: () async {
                         try {
-                          // ขอสิทธิ์การเข้าถึงตำแหน่ง
+                          // ขอ permission
                           LocationPermission permission =
                               await Geolocator.checkPermission();
                           if (permission == LocationPermission.denied) {
@@ -667,38 +1228,41 @@ Widget _buildTextField({
                             if (permission == LocationPermission.denied ||
                                 permission ==
                                     LocationPermission.deniedForever) {
+                              print('Permission denied');
                               return;
                             }
                           }
 
-                          // เช็คว่าเปิด location service หรือยัง
+                          // ตรวจสอบว่าเปิด Location Service อยู่ไหม
                           bool serviceEnabled =
                               await Geolocator.isLocationServiceEnabled();
                           if (!serviceEnabled) {
+                            print('Location service disabled');
                             return;
                           }
 
-                          // ดึงตำแหน่งปัจจุบัน
+                          // ดึงพิกัด
                           Position position =
                               await Geolocator.getCurrentPosition(
                                 desiredAccuracy: LocationAccuracy.high,
                               );
 
-                          // แปลงพิกัดเป็นข้อมูลสถานที่
+                          double latitude = position.latitude;
+                          double longitude = position.longitude;
+                          print('latitude: $latitude, longtitude: $longitude');
+
+                          // ดึงข้อมูลที่อยู่
                           List<Placemark> placemarks =
                               await placemarkFromCoordinates(
-                                position.latitude,
-                                position.longitude,
-                                localeIdentifier: "th",
+                                latitude,
+                                longitude,
+                                localeIdentifier: "th", // ใช้ locale ภาษาไทย
                               );
 
                           if (placemarks.isNotEmpty) {
                             Placemark place = placemarks.first;
 
-                            // DEBUG: ดูค่าทุกตัว
-                            print('thoroughfare: ${place.thoroughfare}');
                             print('locality: ${place.locality}');
-                            print('subLocality: ${place.subLocality}');
                             print(
                               'subAdministrativeArea: ${place.subAdministrativeArea}',
                             );
@@ -708,19 +1272,20 @@ Widget _buildTextField({
                             print('postalCode: ${place.postalCode}');
                             print('country: ${place.country}');
 
-                            // สร้างข้อความสถานที่
                             String placeName =
-                                '${place.thoroughfare ?? ''} ${place.locality ?? ''} ${place.subAdministrativeArea ?? ''} ${place.administrativeArea ?? ''} ${place.postalCode ?? ''} ${place.country ?? ''}';
+                                '${place.locality ?? ''} ${place.subAdministrativeArea ?? ''} '
+                                '${place.administrativeArea ?? ''} ${place.postalCode ?? ''} ${place.country ?? ''}\n'
+                                'ละติจูด: $latitude, ลองจิจูด: $longitude';
 
+                            // เซ็ตข้อความลง TextField
                             locationController.text = placeName.trim();
                           }
                         } catch (e) {
-                          print('Error getting location: $e');
+                          print('เกิดข้อผิดพลาดในการดึงตำแหน่ง: $e');
                         }
                       },
                     ),
                   ),
-
 
                   SizedBox(height: 16),
 

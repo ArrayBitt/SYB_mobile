@@ -24,9 +24,11 @@ class _FollowContractPageState extends State<FollowContractPage> {
   }
 
   Future<void> fetchFollowData() async {
-    final url = Uri.parse(
-      'https://ss.cjk-cr.com/CJK/api/appfollowup/follow_contract.php?contractno=${widget.contractNo}',
-    );
+    final url = Uri.parse('https://ss.cjk-cr.com/CJK/api/appfollowup/follow_contract.php?contractno=${widget.contractNo}', );
+
+    //final url = Uri.parse( 'http://192.168.1.15/CJKTRAINING/api/appfollowup/follow_contract.php?contractno=${widget.contractNo}',);
+
+
     final response = await http.get(url);
 
     if (response.statusCode == 200) {

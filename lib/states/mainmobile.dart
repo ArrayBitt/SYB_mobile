@@ -60,8 +60,9 @@ class _MainMobileState extends State<MainMobile> with WidgetsBindingObserver {
 
  Future<void> _fetchData() async {
     final username = widget.username;
-    final url =
-        'https://ss.cjk-cr.com/CJK/api/appfollowup/contract_api.php?username=$username';
+    final url = 'https://ss.cjk-cr.com/CJK/api/appfollowup/contract_api.php?username=$username';
+
+    //final url ='http://192.168.1.15/CJKTRAINING/api/appfollowup/contract_api.php?username=$username';
 
     setState(() {
       _isLoading = true;
