@@ -229,7 +229,7 @@ class _ShowContractPageState extends State<ShowContractPage> {
                               _buildDetailTile(
                                 Icons.warning,
                                 'Overdue Days',
-                                contractData!['overduedays'],
+                                contractData!['max_nodays'],
                               ),
                               Divider(),
                             ],
