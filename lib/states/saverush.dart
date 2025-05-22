@@ -269,6 +269,8 @@ class _SaveRushPageState extends State<SaveRushPage> {
       'checkrush': _isCompleted.toString(),
       'latitude': latitude?.toString() ?? '',
       'longtitude': longitude?.toString() ?? '',
+      'follower': widget.username,
+      'username': widget.username,
       'fperson': fperson,
       'faddress': faddress,
       'fdatacar': fdatacar,
@@ -364,25 +366,35 @@ class _SaveRushPageState extends State<SaveRushPage> {
                 borderRadius: BorderRadius.circular(20),
               ),
               insetPadding: EdgeInsets.symmetric(horizontal: 24),
+              backgroundColor: Colors.grey.shade50,
               child: Padding(
-                padding: const EdgeInsets.all(24),
+                padding: const EdgeInsets.all(20),
                 child: ListView(
-                   padding: EdgeInsets.all(16),
+                  shrinkWrap: true,
                   children: [
-                    Icon(Icons.check_circle, size: 64, color: Colors.green),
-                    SizedBox(height: 16),
-                    Text(
-                      'บันทึกสำเร็จ',
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.green.shade700,
+                    Center(
+                      child: Icon(
+                        Icons.check_circle_rounded,
+                        size: 72,
+                        color: Colors.teal.shade600,
                       ),
                     ),
                     SizedBox(height: 16),
-                    Divider(),
+                    Center(
+                      child: Text(
+                        'บันทึกสำเร็จ',
+                        style: TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.teal.shade800,
+                        ),
+                      ),
+                    ),
+                    SizedBox(height: 16),
+                    Divider(thickness: 1.2, color: Colors.grey.shade300),
 
                     _buildInfoRow('เลขที่สัญญา', widget.contractNo),
+                    _buildInfoRow('ผู้ติดตาม', widget.username),
                     _buildInfoRow('ประเภทบุคคล', fperson),
                     _buildInfoRow('ที่อยู่ติดตาม', faddress),
                     _buildInfoRow('ข้อมูลรถ', fdatacar),
@@ -392,24 +404,25 @@ class _SaveRushPageState extends State<SaveRushPage> {
                     _buildInfoRow(
                       'ประเภทการตาม',
                       _followTypes.firstWhere(
-                        (e) => e['code'] == _selectedFollowType,
-                      )['label']!,
+                            (e) => e['code'] == _selectedFollowType,
+                          )['label'] ??
+                          '-',
                     ),
-
                     _buildInfoRow('วันนัดชำระ', _dueDateController.text),
                     _buildInfoRow('จำนวนเงิน', _amountController.text),
                     _buildInfoRow('ค่าติดตาม', _followFeeController.text),
                     _buildInfoRow('ระยะไมล์', _mileageController.text),
                     _buildInfoRow('สถานที่', locationController.text),
-                    _buildInfoRow('สถานะการดำเนินการ',getStatusText(_isCompleted), ),
+                    _buildInfoRow(
+                      'สถานะการดำเนินการ',
+                      getStatusText(_isCompleted),
+                    ),
 
-                    SizedBox(height: 20),
+                    SizedBox(height: 24),
                     ElevatedButton.icon(
                       onPressed: () async {
                         final amount = _amountController.text.trim();
                         final followFee = _followFeeController.text.trim();
-
-                        // ตรวจสอบว่ามีทศนิยม 2 ตำแหน่งเท่านั้น
                         final regex = RegExp(r'^\d+\.\d{2}$');
 
                         if (!regex.hasMatch(amount) ||
@@ -419,23 +432,19 @@ class _SaveRushPageState extends State<SaveRushPage> {
                             builder: (BuildContext context) {
                               return AlertDialog(
                                 shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(20),
+                                  borderRadius: BorderRadius.circular(16),
                                 ),
-                                backgroundColor: Colors.white,
-                                contentPadding: const EdgeInsets.symmetric(
-                                  horizontal: 24,
-                                  vertical: 20,
-                                ),
+                                backgroundColor: Colors.grey.shade50,
                                 title: Column(
                                   children: [
                                     Icon(
-                                      Icons.check_circle,
-                                      color: Colors.green,
+                                      Icons.error_outline,
+                                      color: Colors.redAccent,
                                       size: 60,
                                     ),
                                     const SizedBox(height: 10),
                                     Text(
-                                      'บันทึกสำเร็จ',
+                                      'ข้อมูลไม่ถูกต้อง',
                                       textAlign: TextAlign.center,
                                       style: TextStyle(
                                         fontSize: 20,
@@ -445,7 +454,7 @@ class _SaveRushPageState extends State<SaveRushPage> {
                                   ],
                                 ),
                                 content: Text(
-                                  'ข้อมูลถูกบันทึกเรียบร้อย',
+                                  'กรุณาระบุจำนวนเงินให้ถูกต้อง (เช่น 123.00)',
                                   textAlign: TextAlign.center,
                                   style: TextStyle(fontSize: 16),
                                 ),
@@ -453,6 +462,7 @@ class _SaveRushPageState extends State<SaveRushPage> {
                                 actions: [
                                   ElevatedButton(
                                     style: ElevatedButton.styleFrom(
+                                      backgroundColor: Colors.redAccent,
                                       shape: RoundedRectangleBorder(
                                         borderRadius: BorderRadius.circular(12),
                                       ),
@@ -460,11 +470,9 @@ class _SaveRushPageState extends State<SaveRushPage> {
                                         horizontal: 24,
                                         vertical: 12,
                                       ),
-                                      backgroundColor: Colors.green,
                                     ),
-                                    onPressed: () {
-                                      Navigator.of(context).pop();
-                                    },
+                                    onPressed:
+                                        () => Navigator.of(context).pop(),
                                     child: Text(
                                       'ตกลง',
                                       style: TextStyle(
@@ -477,40 +485,64 @@ class _SaveRushPageState extends State<SaveRushPage> {
                               );
                             },
                           );
-
-                          return; // ยกเลิกการส่งฟอร์ม
+                          return;
                         }
 
                         if (_formKey.currentState!.validate()) {
-                          // ... ทำการ submit ตามเดิม
+                          // ส่งข้อมูล
                         }
                       },
-                      icon: Icon(Icons.save),
-                      label: Text('บันทึกข้อมูล'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.teal.shade700,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        elevation: 3,
+                      ),
+                      icon: Icon(Icons.save, color: Colors.white),
+                      label: Text(
+                        'บันทึกข้อมูล',
+                        style: TextStyle(fontSize: 16, color: Colors.white),
+                      ),
                     ),
                   ],
                 ),
               ),
             ),
+
       );
     });
   }
 
-  Widget _buildInfoRow(String title, String value) {
+  Widget _buildInfoRow(String label, String value) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
+      padding: const EdgeInsets.symmetric(vertical: 6),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Expanded(
             flex: 3,
-            child: Text(title, style: TextStyle(fontWeight: FontWeight.w600)),
+            child: Text(
+              '$label:',
+              style: TextStyle(
+                fontWeight: FontWeight.w600,
+                color: Colors.grey.shade700,
+              ),
+            ),
           ),
-          Expanded(flex: 5, child: Text(value)),
+          Expanded(
+            flex: 5,
+            child: Text(
+              value.isEmpty ? '-' : value,
+              style: TextStyle(color: Colors.grey.shade900),
+            ),
+          ),
         ],
       ),
     );
   }
+
 
   void _onItemTapped(int index) {
     setState(() => _selectedIndex = index);

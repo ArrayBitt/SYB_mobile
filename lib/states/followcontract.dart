@@ -266,36 +266,91 @@ class _FollowContractPageState extends State<FollowContractPage> {
     );
   }
 
-  Widget buildFollowCard(dynamic item) {
+ Color iconColor = Colors.teal.shade600;
+  TextStyle textStyle = GoogleFonts.mitr(fontSize: 14, color: Colors.black87);
+
+  Widget buildFollowCardModern(dynamic item) {
     return Card(
-      elevation: 5,
-      margin: const EdgeInsets.symmetric(vertical: 10, horizontal: 15),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       color: Colors.white,
-      shadowColor: Colors.teal.withOpacity(0.4),
+      elevation: 4,
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: Padding(
-        padding: const EdgeInsets.all(12),
+        padding: const EdgeInsets.all(16),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            buildTableHeader(),
-            Divider(thickness: 1, color: Colors.grey.shade300),
-            buildTableRow(
-              formatThaiDate(item['entrydate']),
-              item['times'] ?? '-',
-              item['followamount'] ?? '-',
-              item['memo'] ?? '-',
-              item['follower'] ?? '-',
-              item['followtype'] ?? '-',
-              formatThaiDate(item['meetingdate']),
-              item['meetingamount'] ?? '-',
-              item['username'] ?? '-',
+            Row(
+              children: [
+                Icon(Icons.calendar_today_outlined, size: 18, color: iconColor),
+                SizedBox(width: 8),
+                Text(
+                  'วันที่: ${formatThaiDate(item['entrydate'])}',
+                  style: textStyle,
+                ),
+                Spacer(),
+                Icon(Icons.access_time, size: 18, color: iconColor),
+                SizedBox(width: 8),
+                Text('เวลา: ${item['times'] ?? '-'}', style: textStyle),
+              ],
             ),
-            Divider(thickness: 1, color: Colors.grey.shade300),
+            Divider(height: 16),
+            Row(
+              children: [
+                Icon(Icons.notes, size: 18, color: iconColor),
+                SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'รายละเอียด: ${item['memo'] ?? '-'}',
+                    style: textStyle,
+                  ),
+                ),
+              ],
+            ),
+            SizedBox(height: 6),
+            Row(
+              children: [
+                Icon(Icons.person_outline, size: 18, color: iconColor),
+                SizedBox(width: 8),
+                Text('ผู้ติดตาม: ${item['follower'] ?? '-'}', style: textStyle),
+              ],
+            ),
+            Row(
+              children: [
+                Icon(Icons.assignment, size: 18, color: iconColor),
+                SizedBox(width: 8),
+                Text('ประเภท: ${item['followtype'] ?? '-'}', style: textStyle),
+              ],
+            ),
+            SizedBox(height: 6),
+            Row(
+              children: [
+                Icon(Icons.event, size: 18, color: iconColor),
+                SizedBox(width: 8),
+                Text(
+                  'นัดหมาย: ${formatThaiDate(item['meetingdate'])}',
+                  style: textStyle,
+                ),
+                Spacer(),
+                Icon(Icons.attach_money, size: 18, color: iconColor),
+                SizedBox(width: 8),
+                Text('${item['meetingamount'] ?? '-'}', style: textStyle),
+              ],
+            ),
+            Divider(height: 16),
+            Row(
+              children: [
+                Icon(Icons.badge_outlined, size: 18, color: iconColor),
+                SizedBox(width: 8),
+                Text('ผู้บันทึก: ${item['username'] ?? '-'}', style: textStyle),
+              ],
+            ),
           ],
         ),
       ),
     );
   }
+
 
   @override
   Widget build(BuildContext context) {
@@ -328,7 +383,7 @@ class _FollowContractPageState extends State<FollowContractPage> {
               : ListView.builder(
                 itemCount: followData.length,
                 itemBuilder: (context, index) {
-                  return buildFollowCard(followData[index]);
+                  return buildFollowCardModern(followData[index]);
                 },
               ),
     );

@@ -10,7 +10,7 @@ import 'package:url_launcher/url_launcher.dart'; // ✅ เพิ่มตรง
 class ShowContractPage extends StatefulWidget {
   final String contractNo;
 
-  const ShowContractPage({Key? key, required this.contractNo})
+  const ShowContractPage({Key? key, required this.contractNo, required String username})
     : super(key: key);
 
   @override
@@ -228,8 +228,7 @@ class _ShowContractPageState extends State<ShowContractPage> {
                               Divider(),
                               _buildDetailTile(
                                 Icons.warning,
-                                'Overdue Days',
-                                contractData!['max_nodays'],
+                                'Overdue Days',                                contractData!['max_nodays'],
                               ),
                               Divider(),
                             ],
