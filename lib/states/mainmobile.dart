@@ -7,7 +7,6 @@ import 'package:cjk/states/authen.dart';
 import 'package:cjk/states/saverush.dart';
 import 'package:cjk/states/show_contract.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'dart:math';
 
 class MainMobile extends StatefulWidget {
   final String username;
@@ -18,62 +17,29 @@ class MainMobile extends StatefulWidget {
 }
 
 class _MainMobileState extends State<MainMobile> with WidgetsBindingObserver {
-  int _selectedIndex = 0;
   bool _isLoading = false;
   TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
 
   List<dynamic> _contracts = [];
-  final int _perPage = 50;
-  int _currentPage = 1;
-  bool _isLoadingMore = false;
-  bool _hasMore = true;
-
-  late ScrollController _scrollController;
 
   @override
   void initState() {
     super.initState();
-
-    _scrollController = ScrollController();
-    _scrollController.addListener(() {
-      print('pixels: ${_scrollController.position.pixels}');
-      print('maxExtent: ${_scrollController.position.maxScrollExtent}');
-      if (_scrollController.position.pixels >=
-          _scrollController.position.maxScrollExtent - 1000) {
-        if (!_isLoadingMore && _hasMore && !_isLoading) {
-          loadMoreData();
-        }
-      }
-    });
-
-    _fetchData(page: 1);
+    _fetchData();
   }
 
-  @override
-  void dispose() {
-    _scrollController.dispose();
-    super.dispose();
-  }
-
-  Future<void> _fetchData({int page = 1}) async {
-    print('page: ${page}');
+  Future<void> _fetchData() async {
     final username = widget.username;
-    final url =
-        'https://ss.cjk-cr.com/CJK/api/appfollowup/contract_api.php?username=$username&page=$page&perPage=$_perPage';
+   final url = 'https://ss.cjk-cr.com/CJK/api/appfollowup/contract_api.php?username=$username';
+   
+    //final url ='http://192.168.1.15/CJKTRAINING/api/appfollowup/contract_api.php?username=$username';
+    
 
-    if (page == 1) {
-      setState(() {
-        _isLoading = true;
-        _hasMore = true;
-        _contracts = [];
-        _currentPage = 1;
-      });
-    } else {
-      setState(() {
-        _isLoadingMore = true;
-      });
-    }
+    setState(() {
+      _isLoading = true;
+      _contracts = [];
+    });
 
     try {
       final response = await http.post(
@@ -90,44 +56,24 @@ class _MainMobileState extends State<MainMobile> with WidgetsBindingObserver {
                 final checkrush = item['checkrush'];
                 if (checkrush == null) return true;
                 final value = checkrush.toString().toLowerCase().trim();
-                return value != 'true'; // กรองเอาเฉพาะ checkrush != true
+                return value != 'true'; // กรองเฉพาะ checkrush != true
               }).toList();
 
-          if (page == 1) {
+          setState(() {
             _contracts = filtered;
-          } else {
-            _contracts.addAll(filtered);
-          }
-
-          if (filtered.length < _perPage) {
-            _hasMore = false;
-          } else {
-            _currentPage = page;
-            _hasMore = true;
-          }
+          });
         } else {
           _showError('ข้อมูลไม่ถูกต้อง');
-          _hasMore = false;
         }
       } else {
         _showError('ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์');
-        _hasMore = false;
       }
     } catch (e) {
       _showError('เกิดข้อผิดพลาด: ${e.toString()}');
-      _hasMore = false;
     } finally {
       setState(() {
         _isLoading = false;
-        _isLoadingMore = false;
       });
-    }
-  }
-
-  void loadMoreData() {
-    print('loadMoreData: ${loadMoreData}');
-    if (_hasMore && !_isLoadingMore && !_isLoading) {
-      _fetchData(page: _currentPage + 1);
     }
   }
 
@@ -166,7 +112,7 @@ class _MainMobileState extends State<MainMobile> with WidgetsBindingObserver {
   }
 
   String formatDateToThaiDDMMYYYY(String? input) {
-    if (input == null || input.length != 8) return 'ไม่ระบุ'; // กันความผิดพลาด
+    if (input == null || input.length != 8) return 'ไม่ระบุ';
 
     try {
       String year = input.substring(0, 4);
@@ -178,7 +124,8 @@ class _MainMobileState extends State<MainMobile> with WidgetsBindingObserver {
       return 'ไม่ระบุ';
     }
   }
-void _showContractDetails(BuildContext context, dynamic contract) {
+
+  void _showContractDetails(BuildContext context, dynamic contract) {
     showDialog(
       context: context,
       builder: (context) {
@@ -247,6 +194,12 @@ void _showContractDetails(BuildContext context, dynamic contract) {
                           contractNo: contract['contractno'],
                           hpprice: contract['hpprice'],
                           username: contract['username'],
+                          hpIntAmount: contract['hp_intamount'],
+                          aMount408: contract['amount408'],
+                          aRname: contract['arname'],
+                          tranferdate: contract['tranferdate'],
+                          estmdate: contract['estm_date'],
+
                         ),
                   ),
                 );
@@ -273,6 +226,7 @@ void _showContractDetails(BuildContext context, dynamic contract) {
                         (_) => ShowContractPage(
                           contractNo: contract['contractno'],
                           username: '',
+                          hpprice: null,
                         ),
                   ),
                 );
@@ -300,34 +254,6 @@ void _showContractDetails(BuildContext context, dynamic contract) {
     );
   }
 
-  Widget _buildDialogButton(
-    BuildContext context, {
-    required String label,
-    required Color color,
-    required VoidCallback onPressed,
-  }) {
-    return Container(
-      width: double.infinity,
-      padding: EdgeInsets.symmetric(horizontal: 20, vertical: 6),
-      child: ElevatedButton(
-        onPressed: onPressed,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: color,
-          foregroundColor: Colors.white,
-          padding: EdgeInsets.symmetric(vertical: 14),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(14),
-          ),
-          elevation: 6,
-        ),
-        child: Text(
-          label,
-          style: GoogleFonts.prompt(fontWeight: FontWeight.bold),
-        ),
-      ),
-    );
-  }
-
   void _logout() {
     Navigator.pushAndRemoveUntil(
       context,
@@ -343,7 +269,7 @@ void _showContractDetails(BuildContext context, dynamic contract) {
       color: Colors.black87,
       fontWeight: FontWeight.bold,
     );
-    //seacch bar
+
     List<dynamic> filteredContracts =
         _contracts.where((contract) {
           final contractNo =
@@ -366,203 +292,237 @@ void _showContractDetails(BuildContext context, dynamic contract) {
         backgroundColor: Colors.white,
         elevation: 4,
         centerTitle: true,
-        title: Text('ระบบจัดเก็บและเร่งรัด', style: titleStyle),
+        title: Text('สัญญาเร่งรัด', style: titleStyle),
         iconTheme: IconThemeData(color: Colors.black87),
         actions: [
           IconButton(
-            icon: Icon(Icons.refresh, color: Colors.blue),
-            onPressed: () => _fetchData(page: 1),
+            icon: Icon(Icons.refresh, color: Colors.teal),
+            tooltip: 'รีเฟรช',
+            onPressed: _fetchData,
           ),
           IconButton(
             icon: Icon(Icons.logout, color: Colors.redAccent),
+            tooltip: 'ออกจากระบบ',
             onPressed: _logout,
           ),
         ],
       ),
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Colors.grey.shade100, Colors.grey.shade300],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-        ),
-        child: SafeArea(
-          child: Column(
-            children: [
-              Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 14,
-                  vertical: 8,
-                ),
-                child: TextField(
-                  controller: _searchController,
-                  decoration: InputDecoration(
-                    prefixIcon: Icon(Icons.search, color: Colors.blueAccent),
-                    suffixIcon:
-                        _searchQuery.isNotEmpty
-                            ? IconButton(
-                              icon: Icon(Icons.clear, color: Colors.redAccent),
-                              onPressed: () {
-                                _searchController.clear();
-                                setState(() {
-                                  _searchQuery = '';
-                                });
-                              },
-                            )
-                            : null,
-                    hintText: 'กรอกข้อมูลที่ต้องการค้นหา',
-                    filled: true,
-                    fillColor: Colors.white,
-                    contentPadding: EdgeInsets.symmetric(
-                      horizontal: 14,
-                      vertical: 0,
+      body:
+          _isLoading
+              ? Center(child: CircularProgressIndicator())
+              : Column(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 8,
                     ),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(14),
-                      borderSide: BorderSide.none,
+                    child: TextField(
+                      controller: _searchController,
+                      decoration: InputDecoration(
+                        prefixIcon: Icon(Icons.search),
+                        hintText: 'ค้นหาข้อมูลสัญญา',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      onChanged: (value) {
+                        setState(() {
+                          _searchQuery = value.trim();
+                        });
+                      },
                     ),
                   ),
-                  onChanged: (value) {
-                    setState(() {
-                      _searchQuery = value.trim();
-                    });
-                  },
-                ),
-              ),
-              Expanded(
-                child:
-                    _isLoading && _contracts.isEmpty
-                        ? Center(child: CircularProgressIndicator())
-                        : RefreshIndicator(
-                          onRefresh: () => _fetchData(page: 1),
-                          child: ListView.builder(
-                            controller: _scrollController,
-                            physics: const AlwaysScrollableScrollPhysics(),
-                            itemCount:
-                                filteredContracts.length + (_hasMore ? 1 : 0),
-                            itemBuilder: (context, index) {
-                              if (index == filteredContracts.length) {
-                                if (_isLoadingMore) {
-                                  return Padding(
-                                    padding: const EdgeInsets.all(8.0),
-                                    child: Center(
-                                      child: CircularProgressIndicator(),
-                                    ),
-                                  );
-                                } else {
-                                  return SizedBox.shrink();
-                                }
-                              }
-
-                              final contract = filteredContracts[index];
-
-                              return InkWell(
-                                onTap:
-                                    () =>
-                                        _showContractDetails(context, contract),
-                                child: Card(
-                                  margin: const EdgeInsets.symmetric(
-                                    horizontal: 14,
-                                    vertical: 6,
-                                  ),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(14),
-                                  ),
+                  Expanded(
+                    child:
+                        filteredContracts.isEmpty
+                            ? Center(
+                              child: Text(
+                                'ไม่พบข้อมูล',
+                                style: GoogleFonts.prompt(fontSize: 18),
+                              ),
+                            )
+                            : ListView.separated(
+                              padding: EdgeInsets.symmetric(horizontal: 12),
+                              itemCount: filteredContracts.length,
+                              separatorBuilder:
+                                  (_, __) =>
+                                      Divider(color: Colors.grey.shade400),
+                              itemBuilder: (context, index) {
+                                final contract = filteredContracts[index];
+                                return Card(
                                   elevation: 3,
-                                  child: Padding(
-                                    padding: const EdgeInsets.all(12.0),
-                                    child: Column(
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  child: ListTile(
+                                    contentPadding: EdgeInsets.symmetric(
+                                      horizontal: 12,
+                                      vertical: 8,
+                                    ),
+                                    title: Text(
+                                      'เลขที่สัญญา : ${contract['contractno'] ?? ''}',
+                                      style: GoogleFonts.prompt(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 18,
+                                        color: Colors.teal[700],
+                                      ),
+                                    ),
+                                    subtitle: Column(
                                       crossAxisAlignment:
                                           CrossAxisAlignment.start,
                                       children: [
                                         Text(
-                                          'เลขที่สัญญา: ${contract['contractno']}',
+                                          'ชื่อลูกค้า: ${contract['arname'] ?? ''}',
+                                          style: GoogleFonts.prompt(
+                                            fontSize: 13,
+                                            color: Colors.grey[700],
+                                          ),
+                                        ),
+                                        SizedBox(height: 4),
+                                        Text(
+                                          'วันที่ทำสัญญา: ${contract['contractdate'] != null ? formatDateToThaiDDMMYYYY(contract['contractdate']) : ''}',
+                                          style: GoogleFonts.prompt(
+                                            fontSize: 13,
+                                            color: Colors.grey[700],
+                                          ),
+                                        ),
+                                          SizedBox(height: 4),
+                                        Text(
+                                          'เบอร์โทร: ${contract['mobileno'] ?? ''}',
+                                          style: GoogleFonts.prompt(
+                                            fontSize: 13,
+                                            color: Colors.grey[700],
+                                          ),
+                                        ),
+                                        SizedBox(height: 4),
+                                        SizedBox(height: 4),
+                                        Text(
+                                          'หมายเหตุ: ${contract['followremark'] ?? ''}',
+                                          style: GoogleFonts.prompt(
+                                            fontSize: 13,
+                                            color: Colors.grey[700],
+                                          ),
+                                        ),
+                                        SizedBox(height: 4),
+                                        Text(
+                                          'ที่อยู่: ${contract['addressis'] ?? ''}',
+                                          style: GoogleFonts.prompt(
+                                            fontSize: 13,
+                                            color: Colors.grey[700],
+                                          ),
+                                        ),
+
+                                        Text(
+                                          'ค่าทวงถาม: ${contract['amount408'] ?? ''}',
+                                          style: GoogleFonts.prompt(
+                                            fontSize: 13,
+                                            color: Colors.grey[700],
+                                          ),
+                                        ),
+                                        SizedBox(height: 4),
+                                        Text(
+                                          'ค่าปรับ: ${contract['hp_intamount'] ?? ''}',
+                                          style: GoogleFonts.prompt(
+                                            fontSize: 13,
+                                            color: Colors.grey[700],
+                                          ),
+                                        ),
+                                        SizedBox(height: 4),
+
+                                        SizedBox(height: 4),
+                                        Text(
+                                          'วันที่จ่ายงาน: ${contract['tranferdate'] ?? ''}',
+                                          style: GoogleFonts.prompt(
+                                            fontSize: 13,
+                                            color: Colors.grey[700],
+                                          ),
+                                        ),
+                                        SizedBox(height: 4),
+
+                                        SizedBox(height: 4),
+                                        Text(
+                                          'เวลาจ่ายงาน: ${contract['estm_date'] ?? ''}',
+                                          style: GoogleFonts.prompt(
+                                            fontSize: 13,
+                                            color: Colors.grey[700],
+                                          ),
+                                        ),
+                                        SizedBox(height: 4),
+
+                                        Text(
+                                          'ยอดค้างชำระ: ${contract['hpprice'] ?? ''}',
                                           style: GoogleFonts.prompt(
                                             fontWeight: FontWeight.bold,
-                                            fontSize: 16,
-                                          ),
-                                        ),
-                                        SizedBox(height: 6),
-                                        Text(
-                                          'ชื่อลูกค้า: ${contract['arname'] ?? 'ไม่ระบุ'}',
-                                          style: GoogleFonts.prompt(
-                                            fontSize: 15,
-                                          ),
-                                        ),
-                                        SizedBox(height: 6),
-                                        Text(
-                                          'ยอดผ่อน: ${contract['hpprice'] ?? 'ไม่ระบุ'} บาท',
-                                          style: GoogleFonts.prompt(
-                                            fontSize: 15,
-                                          ),
-                                        ),
-                                        SizedBox(height: 6),
-                                        Text(
-                                          'หมายเหตุ: ${contract['followremark'] ?? 'ไม่ระบุ'}',
-                                          style: GoogleFonts.prompt(
-                                            fontSize: 15,
-                                          ),
-                                        ),
-                                        SizedBox(height: 6),
-                                        Text(
-                                          'ที่อยู่: ${contract['addressis'] ?? 'ไม่ระบุ'}',
-                                          style: GoogleFonts.prompt(
-                                            fontSize: 15,
-                                          ),
-                                        ),
-                                        SizedBox(height: 6),
-                                        Text(
-                                          'วันที่สัญญา: ${formatDateToThaiDDMMYYYY(contract['contractdate'] ?? '')}',
-                                          style: GoogleFonts.prompt(
                                             fontSize: 14,
+                                            color: Colors.redAccent,
                                           ),
                                         ),
-                                        SizedBox(height: 10),
-                                        Row(
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.spaceBetween,
-                                          children: [
-                                            ElevatedButton.icon(
-                                              icon: Icon(Icons.call),
-                                              label: Text(
-                                                contract['mobileno'] ??
-                                                    'โทรออกไม่ได้',
-                                              ),
-                                              onPressed:
-                                                  (contract['mobileno'] !=
-                                                              null &&
-                                                          contract['mobileno']
-                                                              .toString()
-                                                              .trim()
-                                                              .isNotEmpty)
-                                                      ? () => _makePhoneCall(
-                                                        contract['mobileno'],
-                                                      )
-                                                      : null,
-                                              style: ElevatedButton.styleFrom(
-                                                backgroundColor: Colors.green,
-                                                shape: RoundedRectangleBorder(
-                                                  borderRadius:
-                                                      BorderRadius.circular(14),
-                                                ),
-                                              ),
+                                        SizedBox(height: 4),
+                                      ],
+                                    ),
+                                   trailing: Wrap(
+                                      spacing: 8,
+                                      children: [
+                                        if (contract['mobileno'] != null &&
+                                            contract['mobileno']
+                                                .toString()
+                                                .trim()
+                                                .isNotEmpty)
+                                          IconButton(
+                                            icon: Icon(
+                                              Icons.phone,
+                                              color: Colors.green[700],
                                             ),
-                                          ],
+                                            tooltip: 'โทรออก',
+                                            onPressed: () {
+                                              final rawPhone =
+                                                  contract['mobileno']
+                                                      .toString();
+                                              final cleanedPhone = rawPhone
+                                                  .replaceAll(
+                                                    RegExp(r'[^0-9+]'),
+                                                    '',
+                                                  );
+
+                                              if (cleanedPhone.isNotEmpty) {
+                                                _makePhoneCall(cleanedPhone);
+                                              } else {
+                                                ScaffoldMessenger.of(
+                                                  context,
+                                                ).showSnackBar(
+                                                  SnackBar(
+                                                    content: Text(
+                                                      'เบอร์โทรไม่ถูกต้อง',
+                                                    ),
+                                                  ),
+                                                );
+                                              }
+                                            },
+                                          ),
+                                        IconButton(
+                                          icon: Icon(
+                                            Icons.description,
+                                            color: Colors.teal[700],
+                                          ),
+                                          tooltip: 'รายละเอียด',
+                                          onPressed: () {
+                                            _showContractDetails(
+                                              context,
+                                              contract,
+                                            );
+                                          },
                                         ),
                                       ],
                                     ),
+
                                   ),
-                                ),
-                              );
-                            },
-                          ),
-                        ),
+                                );
+                              },
+                            ),
+                  ),
+                ],
               ),
-            ],
-          ),
-        ),
-      ),
     );
   }
 }

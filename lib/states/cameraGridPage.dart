@@ -159,9 +159,11 @@ class _CameraGridPageState extends State<CameraGridPage> {
   Future<List<String>> _uploadImagesToPicUploadAPI(
     List<File?> imageFiles,
   ) async {
-    final uri = Uri.parse(
-      'https://ss.cjk-cr.com/CJK/api/appfollowup/picupload_api.php',
-    );
+    final uri = Uri.parse('https://ss.cjk-cr.com/CJK/api/appfollowup/picupload_api.php',);
+
+    //final uri = Uri.parse( 'http://192.168.1.15/CJKTRAINING/api/appfollowup/picupload_api.php', );
+
+    
 
     var request = http.MultipartRequest('POST', uri);
 

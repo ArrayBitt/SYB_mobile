@@ -12,12 +12,22 @@ class SaveRushPage extends StatefulWidget {
   final String contractNo;
   final String hpprice;
   final String username;
+  final String hpIntAmount;
+  final String aMount408;
+  final String aRname;
+  final String tranferdate;
+  final String estmdate;
 
   const SaveRushPage({
     Key? key,
     required this.contractNo,
     required this.hpprice,
     required this.username,
+    required this.hpIntAmount,
+    required this.aMount408,
+    required this.aRname, 
+    required this.tranferdate, 
+    required this.estmdate,
   }) : super(key: key);
 
   @override
@@ -41,7 +51,6 @@ class _SaveRushPageState extends State<SaveRushPage> {
   String fdatacar = '';
   bool _isOtherDatacar = false;
   TextEditingController _otherDatacarController = TextEditingController();
-
 
   String? _selectedareaType;
   String farea = '';
@@ -123,10 +132,10 @@ class _SaveRushPageState extends State<SaveRushPage> {
   }
 
   Future<void> _fetchFollowTypes() async {
-    // const url = 'https://ss.cjk-cr.com/CJK/api/appfollowup/get_followtype.php?followtype=M-1';
-
     const url =
-        'http://192.168.1.15/CJKTRAINING/api/appfollowup/get_followtype.php?followtype=M-1';
+        'https://ss.cjk-cr.com/CJK/api/appfollowup/get_followtype.php?followtype=M-1';
+
+    //const url ='http://192.168.1.15/CJKTRAINING/api/appfollowup/get_followtype.php?followtype=M-1';
 
     try {
       final res = await http.get(Uri.parse(url));
@@ -205,7 +214,7 @@ class _SaveRushPageState extends State<SaveRushPage> {
     }
   }
 
-  Future<bool> _saveRush() async {
+ Future<bool> _saveRush() async {
     DateTime now = DateTime.now();
     String entryDate =
         '${now.year + 543}${now.month.toString().padLeft(2, '0')}${now.day.toString().padLeft(2, '0')}';
@@ -218,30 +227,21 @@ class _SaveRushPageState extends State<SaveRushPage> {
         _isOtherPerson
             ? _otherPersonController.text
             : (_selectedPersonType ?? '');
-
     String faddress =
         _isOtherAdress
             ? _otherAdressController.text
             : (_selectedaddressType ?? '');
-
     String fdatacar =
         _isOtherDatacar
             ? _otherDatacarController.text
             : (_selectedfdatacarType ?? '');
-
-
-     String farea =
-        _isOtherArea
-            ? _otherAreaController.text
-            : (_selectedareaType ?? '');
-
-
-              String fproperty =
+    String farea =
+        _isOtherArea ? _otherAreaController.text : (_selectedareaType ?? '');
+    String fproperty =
         _isOtherProperty
             ? _otherPropertyController.text
             : (_selectedproperType ?? '');
 
-    // ✅ ดึงตำแหน่งปัจจุบัน
     try {
       Position position = await Geolocator.getCurrentPosition(
         desiredAccuracy: LocationAccuracy.high,
@@ -252,10 +252,10 @@ class _SaveRushPageState extends State<SaveRushPage> {
       print('⚠️ ไม่สามารถดึงตำแหน่งได้: $e');
     }
 
-    final String url =
+    final String url1 =
         'https://ss.cjk-cr.com/CJK/api/appfollowup/up_saverush.php?contractno=${widget.contractNo}';
 
-    final data = {
+    final data1 = {
       'contractno': widget.contractNo,
       'memo': _noteController.text,
       'followtype': _selectedFollowType ?? '',
@@ -284,41 +284,74 @@ class _SaveRushPageState extends State<SaveRushPage> {
       'picf': imageFilenames.length > 5 ? imageFilenames[5] : '',
     };
 
-    print('📤 ส่งข้อมูลไปยัง: $url');
-    print('📦 Payload: $data');
+    print('📤 ส่งข้อมูลไปยัง API แรก: $url1');
+    print('📦 Payload API แรก: $data1');
 
     try {
-      final res = await http.post(
-        Uri.parse(url),
+      final res1 = await http.post(
+        Uri.parse(url1),
         headers: {"Content-Type": "application/json"},
-        body: jsonEncode(data),
+        body: jsonEncode(data1),
       );
 
-      print('📥 Response Code: ${res.statusCode}');
-      print('📥 Response Body: ${res.body}');
+      print('📥 Response API แรก Code: ${res1.statusCode}');
+      print('📥 Response API แรก Body: ${res1.body}');
 
-      if (res.statusCode == 200) {
-        final responseData = json.decode(res.body);
-        if (responseData['status'] == 'success') {
-          return true;
-        } else {
-          final msg = responseData['message'] ?? 'เกิดข้อผิดพลาดในการบันทึก';
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(SnackBar(content: Text(msg)));
-          return false;
-        }
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('การเชื่อมต่อกับเซิร์ฟเวอร์ล้มเหลว')),
-        );
+      final responseData1 = json.decode(res1.body);
+
+      if (res1.statusCode != 200 || responseData1['status'] != 'success') {
+        final msg =
+            responseData1 is Map && responseData1.containsKey('message')
+                ? responseData1['message']
+                : 'เกิดข้อผิดพลาดจาก API แรก';
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(msg)));
         return false;
       }
+
+      final String url2 =
+          'http://ss1.cjk-cr.com/CJK/api/appfollowup/update_checkrush.php?contractno=${widget.contractNo}';
+
+      final data2 = {
+        'contractno': widget.contractNo,
+        'tranferdate': widget.tranferdate,
+        'estm_date': widget.estmdate,
+        'checkrush': _isCompleted.toString(),
+        'username': widget.username,
+      };
+
+      print('📤 ส่งข้อมูลไปยัง API ที่สอง: $url2');
+      print('📦 Payload API ที่สอง: $data2');
+
+      final res2 = await http.post(
+        Uri.parse(url2),
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode(data2),
+      );
+
+      print('📥 Response API ที่สอง Code: ${res2.statusCode}');
+      print('📥 Response API ที่สอง Body: ${res2.body}');
+
+      final responseData2 = json.decode(res2.body);
+
+      if (res2.statusCode != 200 || responseData2['status'] != 'success') {
+        final msg =
+            responseData2 is Map && responseData2.containsKey('message')
+                ? responseData2['message']
+                : 'เกิดข้อผิดพลาดจาก API ที่สอง';
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(msg)));
+        return false;
+      }
+
+      return true;
     } catch (e) {
       print('❌ เกิดข้อผิดพลาดขณะส่งข้อมูล: $e');
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('เกิดข้อผิดพลาด: $e')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('เกิดข้อผิดพลาด: ${e.toString()}')),
+      );
       return false;
     }
   }
@@ -395,6 +428,7 @@ class _SaveRushPageState extends State<SaveRushPage> {
 
                     _buildInfoRow('เลขที่สัญญา', widget.contractNo),
                     _buildInfoRow('ผู้ติดตาม', widget.username),
+                    _buildInfoRow('ชื่อลูกค้า', widget.aRname),
                     _buildInfoRow('ประเภทบุคคล', fperson),
                     _buildInfoRow('ที่อยู่ติดตาม', faddress),
                     _buildInfoRow('ข้อมูลรถ', fdatacar),
@@ -510,7 +544,6 @@ class _SaveRushPageState extends State<SaveRushPage> {
                 ),
               ),
             ),
-
       );
     });
   }
@@ -542,7 +575,6 @@ class _SaveRushPageState extends State<SaveRushPage> {
       ),
     );
   }
-
 
   void _onItemTapped(int index) {
     setState(() => _selectedIndex = index);
@@ -641,7 +673,7 @@ class _SaveRushPageState extends State<SaveRushPage> {
       'อื่นๆ',
     ];
 
-     List<String> datacarTypes = [
+    List<String> datacarTypes = [
       'พบรถ',
       'ไม่พบรถ',
       'รถใช้นอกพื้นที่',
@@ -650,8 +682,7 @@ class _SaveRushPageState extends State<SaveRushPage> {
       'อื่นๆ',
     ];
 
-
-      List<String> fareaTypes = [
+    List<String> fareaTypes = [
       'นัดชำระ',
       'ติดตามต่อ',
       'ส่งต่อสายงานอื่น',
@@ -660,11 +691,7 @@ class _SaveRushPageState extends State<SaveRushPage> {
       'อื่นๆ',
     ];
 
-
-    List<String> fproperTypes = [
-      'ไม่มีทรัพย์สิน',
-      'มีทรัพย์สิน',
-    ];
+    List<String> fproperTypes = ['ไม่มีทรัพย์สิน', 'มีทรัพย์สิน'];
 
     return Scaffold(
       appBar: AppBar(
@@ -679,6 +706,93 @@ class _SaveRushPageState extends State<SaveRushPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  padding: EdgeInsets.all(16),
+                  margin: EdgeInsets.only(bottom: 16),
+                  decoration: BoxDecoration(
+                    color: Colors.amber.shade100,
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.amber.withOpacity(0.3),
+                        blurRadius: 8,
+                        offset: Offset(0, 3),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.payment, color: Colors.amber.shade700),
+                      SizedBox(width: 12),
+                      Text(
+                        'ค่าปรับ: ',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.amber.shade900,
+                        ),
+                      ),
+                      Expanded(
+                        child: Text(
+                          '${widget.hpIntAmount}',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.black87,
+                          ),
+                          textAlign: TextAlign.right,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                Container(
+                  padding: EdgeInsets.all(16),
+                  margin: EdgeInsets.only(bottom: 16),
+                  decoration: BoxDecoration(
+                    color: Colors.amber.shade100,
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.amber.withOpacity(0.3),
+                        blurRadius: 8,
+                        offset: Offset(0, 3),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.payment, color: Colors.amber.shade700),
+                      SizedBox(width: 12),
+                      Text(
+                        'ค่าทวงถาม: ',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.amber.shade900,
+                        ),
+                      ),
+                      Expanded(
+                        child: Text(
+                          '${widget.aMount408}',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.black87,
+                          ),
+                          textAlign: TextAlign.right,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+
             Form(
               key: _formKey,
               child: Column(
@@ -863,8 +977,7 @@ class _SaveRushPageState extends State<SaveRushPage> {
                   SizedBox(height: 12),
 
                   //datacar
-
-                   DropdownButtonFormField<String>(
+                  DropdownButtonFormField<String>(
                     value: _isOtherAdress ? 'อื่นๆ' : _selectedfdatacarType,
                     items:
                         datacarTypes.map((type) {
@@ -952,9 +1065,8 @@ class _SaveRushPageState extends State<SaveRushPage> {
                   SizedBox(height: 12),
 
                   //area
-
                   DropdownButtonFormField<String>(
-                    value:  _isOtherArea? 'อื่นๆ' : _selectedareaType,
+                    value: _isOtherArea ? 'อื่นๆ' : _selectedareaType,
                     items:
                         fareaTypes.map((type) {
                           return DropdownMenuItem(
@@ -1030,8 +1142,7 @@ class _SaveRushPageState extends State<SaveRushPage> {
                       },
 
                       validator: (value) {
-                        if (_isOtherArea &&
-                            (value == null || value.isEmpty)) {
+                        if (_isOtherArea && (value == null || value.isEmpty)) {
                           return 'กรุณาระบุประผลการลงพื้นที่';
                         }
                         return null;
@@ -1041,8 +1152,9 @@ class _SaveRushPageState extends State<SaveRushPage> {
                   SizedBox(height: 12),
 
                   //fproperty
-                    DropdownButtonFormField<String>(
-                    value: _isOtherProperty ? 'มีทรัพย์สิน' : _selectedproperType,
+                  DropdownButtonFormField<String>(
+                    value:
+                        _isOtherProperty ? 'มีทรัพย์สิน' : _selectedproperType,
                     items:
                         fproperTypes.map((type) {
                           return DropdownMenuItem(
@@ -1059,7 +1171,8 @@ class _SaveRushPageState extends State<SaveRushPage> {
                           fproperty = ''; // เคลียร์ค่า fproperty
                         } else {
                           _isOtherProperty = false;
-                          fproperty = value ?? ''; // ← ตรงนี้ควรอัปเดต fproperty
+                          fproperty =
+                              value ?? ''; // ← ตรงนี้ควรอัปเดต fproperty
                         }
                       });
                     },
@@ -1118,7 +1231,8 @@ class _SaveRushPageState extends State<SaveRushPage> {
                       },
 
                       validator: (value) {
-                        if (_isOtherProperty && (value == null || value.isEmpty)) {
+                        if (_isOtherProperty &&
+                            (value == null || value.isEmpty)) {
                           return 'กรุณาระบุประทรัพย์สิน';
                         }
                         return null;

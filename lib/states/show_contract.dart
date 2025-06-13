@@ -1,3 +1,4 @@
+import 'package:cjk/states/pay_as400.dart';
 import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
@@ -10,8 +11,12 @@ import 'package:url_launcher/url_launcher.dart'; // ✅ เพิ่มตรง
 class ShowContractPage extends StatefulWidget {
   final String contractNo;
 
-  const ShowContractPage({Key? key, required this.contractNo, required String username})
-    : super(key: key);
+  const ShowContractPage({
+    Key? key,
+    required this.contractNo,
+    required String username,
+    required hpprice,
+  }) : super(key: key);
 
   @override
   _ShowContractPageState createState() => _ShowContractPageState();
@@ -28,12 +33,9 @@ class _ShowContractPageState extends State<ShowContractPage> {
   }
 
   Future<void> fetchContractDetails() async {
+    final url = Uri.parse( 'https://ss.cjk-cr.com/CJK/api/appfollowup/show_contract.php?contractno=${widget.contractNo}',);
 
-
-    final url = Uri.parse('https://ss.cjk-cr.com/CJK/api/appfollowup/show_contract.php?contractno=${widget.contractNo}',);
-    
-    //final url = Uri.parse('http://192.168.1.15/CJKTRAINING/api/appfollowup/show_contract.php?contractno=${widget.contractNo}',);
-    
+   //final url = Uri.parse( 'http://192.168.1.15/CJKTRAINING/api/appfollowup/show_contract.php?contractno=${widget.contractNo}',);
 
     final response = await http.get(url);
 
@@ -62,11 +64,10 @@ class _ShowContractPageState extends State<ShowContractPage> {
     final contractNo = contractData?['contractno'];
     if (contractNo != null && contractNo.toString().isNotEmpty) {
 
-      final url = Uri.parse('https://ss.cjk-cr.com/CJK/Formspdf/frm_hp_cardcut.php?p_dbmsname=ppwsjdbms&p_docno=$contractNo',
+      final url = Uri.parse('https://ss.cjk-cr.com/Formspdf/frm_hp_cardcut.php?p_dbmsname=MotorBikeDBMS&p_docno=$contractNo', );
 
-      //final url = Uri.parse('http://171.102.194.54/TRAINING/PPWSJ/Formspdf/frm_hp_cardcut.php?p_dbmsname=ppwsjdbms&p_docno=$contractNo',
+      //final url = Uri.parse( 'http://192.168.1.15/Formspdf/frm_hp_cardcut.php?p_dbmsname=MotorBikeDBMS&p_docno=$contractNo', );
 
-      );
       if (await canLaunchUrl(url)) {
         await launchUrl(url, mode: LaunchMode.externalApplication);
       } else {
@@ -107,7 +108,7 @@ class _ShowContractPageState extends State<ShowContractPage> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                             Row(
+                              Row(
                                 mainAxisAlignment:
                                     MainAxisAlignment.spaceBetween,
                                 children: [
@@ -137,7 +138,9 @@ class _ShowContractPageState extends State<ShowContractPage> {
                                         );
                                       }
                                     },
+
                                     icon: Icon(Icons.image, size: 18),
+
                                     label: Text(
                                       'ภาพสัญญา',
                                       style: GoogleFonts.prompt(fontSize: 14),
@@ -155,10 +158,54 @@ class _ShowContractPageState extends State<ShowContractPage> {
                                       elevation: 2,
                                     ),
                                   ),
+
+                                  ElevatedButton.icon(
+                                    onPressed: () {
+                                      final contractNo =
+                                          contractData?['contractno'];
+                                      if (contractNo != null &&
+                                          contractNo.toString().isNotEmpty) {
+                                        Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder:
+                                                (context) => PayAS400Page(
+                                                  contractNo: contractNo,
+                                                ),
+                                          ),
+                                        );
+                                      } else {
+                                        ScaffoldMessenger.of(
+                                          context,
+                                        ).showSnackBar(
+                                          SnackBar(
+                                            content: Text('ไม่พบเลขที่สัญญา'),
+                                          ),
+                                        );
+                                      }
+                                    },
+                                    icon: Icon(Icons.payment, size: 18),
+                                    label: Text(
+                                      'ชำระเงิน',
+                                      style: GoogleFonts.prompt(fontSize: 14),
+                                    ),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: Colors.red[400],
+                                      foregroundColor: Colors.white,
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(10),
+                                      ),
+                                      padding: EdgeInsets.symmetric(
+                                        horizontal: 10,
+                                        vertical: 8,
+                                      ),
+                                      elevation: 2,
+                                    ),
+                                  ),
+
                                 ],
                               ),
 
-                              
                               Divider(),
                               _buildDetailTile(
                                 Icons.receipt_long,
@@ -228,11 +275,17 @@ class _ShowContractPageState extends State<ShowContractPage> {
                               Divider(),
                               _buildDetailTile(
                                 Icons.warning,
-                                'Overdue Days',                                contractData!['max_nodays'],
+                                'Overdue Days',
+                                contractData!['max_nodays'],
+                              ),
+                              Divider(),
+                              _buildDetailTile(
+                                Icons.map,
+                                'Maplocation',
+                                contractData!['maplocations'],
                               ),
                               Divider(),
                             ],
-                            
                           ),
                         ),
                       ),
@@ -268,7 +321,7 @@ class _ShowContractPageState extends State<ShowContractPage> {
                         );
                       }
                     },
-                    
+
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.amber[800],
                       foregroundColor: Colors.white,
@@ -287,7 +340,7 @@ class _ShowContractPageState extends State<ShowContractPage> {
                   ),
                 ),
                 SizedBox(width: 10),
-              Expanded(
+                Expanded(
                   child: ElevatedButton(
                     onPressed: () {
                       final contractNo = contractData?['contractno'];
@@ -324,8 +377,6 @@ class _ShowContractPageState extends State<ShowContractPage> {
                     ),
                   ),
                 ),
-
-
               ],
             ),
           ),
