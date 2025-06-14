@@ -17,6 +17,7 @@ class SaveRushPage extends StatefulWidget {
   final String aRname;
   final String tranferdate;
   final String estmdate;
+  
 
   const SaveRushPage({
     Key? key,
@@ -25,8 +26,8 @@ class SaveRushPage extends StatefulWidget {
     required this.username,
     required this.hpIntAmount,
     required this.aMount408,
-    required this.aRname, 
-    required this.tranferdate, 
+    required this.aRname,
+    required this.tranferdate,
     required this.estmdate,
   }) : super(key: key);
 
@@ -214,7 +215,7 @@ class _SaveRushPageState extends State<SaveRushPage> {
     }
   }
 
- Future<bool> _saveRush() async {
+  Future<Map<String, dynamic>> _saveRush() async {
     DateTime now = DateTime.now();
     String entryDate =
         '${now.year + 543}${now.month.toString().padLeft(2, '0')}${now.day.toString().padLeft(2, '0')}';
@@ -254,7 +255,6 @@ class _SaveRushPageState extends State<SaveRushPage> {
 
     final String url1 =
         'https://ss.cjk-cr.com/CJK/api/appfollowup/up_saverush.php?contractno=${widget.contractNo}';
-
     final data1 = {
       'contractno': widget.contractNo,
       'memo': _noteController.text,
@@ -304,15 +304,12 @@ class _SaveRushPageState extends State<SaveRushPage> {
             responseData1 is Map && responseData1.containsKey('message')
                 ? responseData1['message']
                 : 'เกิดข้อผิดพลาดจาก API แรก';
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(msg)));
-        return false;
+        return {'success': false, 'message': '❌ API บันทึกติดตามล้มเหลว: $msg'};
       }
 
+      // ✅ API ที่ 2
       final String url2 =
-          'http://ss1.cjk-cr.com/CJK/api/appfollowup/update_checkrush.php?contractno=${widget.contractNo}';
-
+          'https://ss.cjk-cr.com/CJK/api/appfollowup/update_checkrush.php?contractno=${widget.contractNo}';
       final data2 = {
         'contractno': widget.contractNo,
         'tranferdate': widget.tranferdate,
@@ -340,55 +337,77 @@ class _SaveRushPageState extends State<SaveRushPage> {
             responseData2 is Map && responseData2.containsKey('message')
                 ? responseData2['message']
                 : 'เกิดข้อผิดพลาดจาก API ที่สอง';
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(msg)));
-        return false;
+        return {
+          'success': false,
+          'message': '❌ API อัปเดต checkrush ล้มเหลว: $msg',
+        };
       }
 
-      return true;
+      print('✅ บันทึกสำเร็จทั้ง 2 API');
+      return {'success': true};
     } catch (e) {
       print('❌ เกิดข้อผิดพลาดขณะส่งข้อมูล: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('เกิดข้อผิดพลาด: ${e.toString()}')),
-      );
-      return false;
+      return {'success': false, 'message': '❌ ข้อผิดพลาดระบบ: ${e.toString()}'};
     }
   }
 
-  void _submitForm() async {
-    print('เริ่มบันทึกข้อมูล...');
+void _submitForm() async {
+  print('เริ่มบันทึกข้อมูล...');
 
-    if (_selectedFollowType == null) {
-      print('ยังไม่ได้เลือกประเภทการตาม');
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('กรุณาเลือกประเภทการตาม')));
-      return;
-    }
-
-    // ✅ ตรวจสอบว่ามีการถ่ายภาพอย่างน้อย 1 ภาพ
-    final hasAtLeastOneImage = imageFilenames.any(
-      (filename) => filename != null && filename.trim().isNotEmpty,
+  if (_selectedFollowType == null) {
+    print('ยังไม่ได้เลือกประเภทการตาม');
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('กรุณาเลือกประเภทการตาม')),
     );
+    return;
+  }
 
-    if (!_formKey.currentState!.validate()) {
-      print('Form validation ไม่ผ่าน');
+  // เช็ค memo ไม่เกิน 250 ตัวอักษร
+    if (_noteController.text.length > 250) {
+      print('memo ยาวเกิน 250 ตัวอักษร');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('ข้อความหมายเหตุห้ามเกิน 250 ตัวอักษร')),
+      );
       return;
     }
 
-    setState(() => _isSaving = true);
-    final success = await _saveRush();
-    setState(() => _isSaving = false);
-
-    print('บันทึกสำเร็จหรือไม่: $success');
-
-    if (!success) {
+    // เช็คให้เลือกวันนัดชำระเสมอ (ไม่ว่าง)
+    if (_dueDateController.text.trim().isEmpty) {
+      print('ยังไม่ได้เลือกวันนัดชำระ');
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text('บันทึกไม่สำเร็จ โปรดลองใหม่')));
+      ).showSnackBar(SnackBar(content: Text('กรุณาเลือกวันนัดชำระ')));
       return;
     }
+
+  final hasAtLeastOneImage = imageFilenames.any(
+    (filename) => filename != null && filename.trim().isNotEmpty,
+  );
+
+  if (!_formKey.currentState!.validate()) {
+    print('Form validation ไม่ผ่าน');
+    return;
+  }
+
+  setState(() => _isSaving = true);
+  final result = await _saveRush(); // now returns a Map
+  setState(() => _isSaving = false);
+
+  print('บันทึกสำเร็จหรือไม่: ${result['success']}');
+
+  if (!result['success']) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(result['message'] ?? 'บันทึกไม่สำเร็จ โปรดลองใหม่')),
+    );
+    return;
+  }
+
+  ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(content: Text('✅ บันทึกข้อมูลสำเร็จ')),
+  );
+  Navigator.pop(context);
+
+
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       showDialog(

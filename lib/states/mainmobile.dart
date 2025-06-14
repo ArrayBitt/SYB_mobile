@@ -292,7 +292,7 @@ class _MainMobileState extends State<MainMobile> with WidgetsBindingObserver {
         backgroundColor: Colors.white,
         elevation: 4,
         centerTitle: true,
-        title: Text('สัญญาเร่งรัด', style: titleStyle),
+        title: Text('สัญญาเร่งรัด (version 1.3)', style: titleStyle),
         iconTheme: IconThemeData(color: Colors.black87),
         actions: [
           IconButton(
@@ -493,7 +493,7 @@ class _MainMobileState extends State<MainMobile> with WidgetsBindingObserver {
                                                 ).showSnackBar(
                                                   SnackBar(
                                                     content: Text(
-                                                      'เบอร์โทรไม่ถูกต้อง',
+                                                      'ไม่พบเบอร์ในระบบ',
                                                     ),
                                                   ),
                                                 );
@@ -507,7 +507,7 @@ class _MainMobileState extends State<MainMobile> with WidgetsBindingObserver {
                                           ),
                                           tooltip: 'รายละเอียด',
                                           onPressed: () {
-                                            _showContractDetails(
+                                          _showContractDetails(
                                               context,
                                               contract,
                                             );

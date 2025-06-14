@@ -48,7 +48,6 @@ class _PayAS400PageState extends State<PayAS400Page> {
             String formattedQr = rawQr.replaceAll('%0D', '\r');
             String formattedBarcode = rawBarcode.replaceAll('\r', '');
 
-
             setState(() {
               qrData = formattedQr;
               barcodeData = formattedBarcode;
@@ -134,9 +133,11 @@ class _PayAS400PageState extends State<PayAS400Page> {
                           _moneyInfoItem(
                             'จำนวนงวด',
                             firstItem!['totalperiod'] ?? '-',
+                            isInteger: true, // ✅ ใช้เฉพาะจำนวนงวด
                           ),
                         ],
                       ),
+
                       const SizedBox(height: 32),
 
                       // QR Code
@@ -163,7 +164,7 @@ class _PayAS400PageState extends State<PayAS400Page> {
                           ),
                         ),
                       ),
-                     
+
                       const SizedBox(height: 32),
 
                       // ✅ Barcode (แสดงจริง)
@@ -212,7 +213,7 @@ class _PayAS400PageState extends State<PayAS400Page> {
     );
   }
 
-  Widget _moneyInfoItem(String label, String value) {
+  Widget _moneyInfoItem(String label, String value, {bool isInteger = false}) {
     return Column(
       children: [
         Text(
@@ -225,7 +226,7 @@ class _PayAS400PageState extends State<PayAS400Page> {
         ),
         const SizedBox(height: 4),
         Text(
-          _formatCurrency(value),
+          isInteger ? _formatInteger(value) : _formatCurrency(value),
           style: GoogleFonts.prompt(
             fontSize: 18,
             fontWeight: FontWeight.bold,
@@ -234,6 +235,14 @@ class _PayAS400PageState extends State<PayAS400Page> {
         ),
       ],
     );
+  }
+
+  String _formatInteger(String val) {
+    try {
+      return int.parse(double.parse(val).toStringAsFixed(0)).toString();
+    } catch (_) {
+      return val;
+    }
   }
 
   String _formatCurrency(String val) {

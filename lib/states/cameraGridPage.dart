@@ -109,7 +109,7 @@ class _CameraGridPageState extends State<CameraGridPage> {
           // Web ยังใช้ path เดิม (อาจยังไม่เหมาะสมสำหรับ Web จริงๆ)
           newPath = pickedFile.path;
         } else {
-          final directory = await getTemporaryDirectory();
+          final directory = await getApplicationDocumentsDirectory();
           newPath = path.join(
             directory.path,
             '${widget.contractno}_${String.fromCharCode(65 + index)}.jpg',
@@ -155,15 +155,12 @@ class _CameraGridPageState extends State<CameraGridPage> {
       _textControllers.forEach((controller) => controller.clear());
     });
   }
-
-  Future<List<String>> _uploadImagesToPicUploadAPI(
+Future<List<String>> _uploadImagesToPicUploadAPI(
     List<File?> imageFiles,
   ) async {
-    final uri = Uri.parse('https://ss.cjk-cr.com/CJK/api/appfollowup/picupload_api.php',);
-
-    //final uri = Uri.parse( 'http://192.168.1.15/CJKTRAINING/api/appfollowup/picupload_api.php', );
-
-    
+    final uri = Uri.parse(
+      'https://ss.cjk-cr.com/CJK/api/appfollowup/picupload_api.php',
+    );
 
     var request = http.MultipartRequest('POST', uri);
 
@@ -178,16 +175,15 @@ class _CameraGridPageState extends State<CameraGridPage> {
     }
 
     var response = await request.send();
+    final respStr = await response.stream.bytesToString();
 
     if (response.statusCode == 200) {
-      final respStr = await response.stream.bytesToString();
       final decoded = json.decode(respStr);
-
       if (decoded['status'] == 'success') {
         print('✅ อัปโหลดเสร็จเรียบร้อย');
 
         List<String> uploadedFileNames = [];
-        if (decoded['files'] != null) {
+       if (decoded['files'] != null) {
           for (var f in decoded['files']) {
             uploadedFileNames.add(f['file_name']);
           }
@@ -195,14 +191,15 @@ class _CameraGridPageState extends State<CameraGridPage> {
 
         return uploadedFileNames;
       } else {
-        throw Exception('API Error: ${decoded['message']}');
+        // 👇 ดึง message จาก API และโยน exception
+        throw Exception(decoded['message'] ?? 'เกิดข้อผิดพลาดจาก API');
       }
     } else {
       throw Exception('HTTP Error ${response.statusCode}');
     }
   }
 
-  void _saveImagesAndReturn() async {
+void _saveImagesAndReturn() async {
     if (_imageFiles.any((file) => file != null)) {
       try {
         List<String> uploadedFileNames = await _uploadImagesToPicUploadAPI(
@@ -221,7 +218,7 @@ class _CameraGridPageState extends State<CameraGridPage> {
       } catch (e) {
         print('❌ Error uploading images: $e');
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('เกิดข้อผิดพลาดในการอัปโหลดรูปภาพ')),
+          SnackBar(content: Text('เกิดข้อผิดพลาด: ${e.toString()}')),
         );
       }
     } else {
@@ -232,6 +229,7 @@ class _CameraGridPageState extends State<CameraGridPage> {
       );
     }
   }
+
 
   @override
   Widget build(BuildContext context) {

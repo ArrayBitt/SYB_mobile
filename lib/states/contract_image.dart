@@ -23,9 +23,10 @@ class _ContractImagePageState extends State<ContractImagePage> {
   }
 
   void _getImagesByType(String documentType) async {
-    final url ='https://ss.cjk-cr.com/CJK/api/appfollowup/get_cjk_image.php?contractno=${widget.contractNo}';
+    final url =
+        'https://ss.cjk-cr.com/CJK/api/appfollowup/get_cjk_image.php?contractno=${widget.contractNo}';
 
-    //training 
+    //training
     //final url = 'http://192.168.1.15/CJKTRAINING/api/appfollowup/get_cjk_image.php?contractno=${widget.contractNo}';
 
     try {
@@ -121,10 +122,19 @@ class _ContractImagePageState extends State<ContractImagePage> {
                     '11', // รูปถ่ายคนใช้
                     '12', // รูปถ่ายคนค้ำ
                     '13', // รูปถ่ายอาชีพ
+                    '01',
+                    '02',
+                    '03',
+                    '04',
+                    '05',
+                    '06',
+                    '07',
+                    '08',
+                    '09',
                   ].map<DropdownMenuItem<String>>((value) {
                     String label = '';
                     switch (value) {
-                       case '01.1':
+                      case '01.1':
                         label = 'บปช.';
                         break;
                       case '10':
@@ -138,6 +148,42 @@ class _ContractImagePageState extends State<ContractImagePage> {
                         break;
                       case '13':
                         label = 'รูปถ่ายอาชีพ';
+                        break;
+
+                      case '01':
+                        label = 'บปช.คนซื้อ';
+                        break;
+
+                      case '02':
+                        label = 'บปช.คนใช้';
+                        break;
+
+                      case '03':
+                        label = 'บปช.คนค้ำ';
+                        break;
+
+                      case '04':
+                        label = 'ทบบ.หน้าแรกคนซื้อ';
+                        break;
+
+                      case '05':
+                        label = 'ทบบ.หน้าที่มีชื่อคนซื้อ';
+                        break;
+
+                      case '06':
+                        label = 'ทบบ. หน้าแรกคนใช้';
+                        break;
+
+                      case '07':
+                        label = 'ทบบ.หน้าที่มีคนใช้';
+                        break;
+
+                      case '08':
+                        label = 'ทบบ.หน้าแรกคนค้ำ';
+                        break;
+
+                      case '09':
+                        label = 'ทบบ.หน้าที่มีชื่อคนค้ำ';
                         break;
                     }
                     return DropdownMenuItem<String>(
@@ -174,7 +220,7 @@ class _ContractImagePageState extends State<ContractImagePage> {
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                 ClipRRect(
+                                  ClipRRect(
                                     borderRadius: const BorderRadius.vertical(
                                       top: Radius.circular(20),
                                     ),
@@ -209,8 +255,6 @@ class _ContractImagePageState extends State<ContractImagePage> {
                                       ),
                                     ),
                                   ),
-
-
                                 ],
                               ),
                             ),
