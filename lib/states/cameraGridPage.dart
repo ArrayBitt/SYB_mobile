@@ -279,25 +279,25 @@ class _CameraGridPageState extends State<CameraGridPage> {
         foregroundColor: Colors.white,
         elevation: 2,
         actions: [
-          // IconButton(
-          //   icon: Icon(Icons.videocam),
-          //   tooltip: 'ถ่ายวิดีโอ',
-          //   onPressed: () async {
-          //     final result = await Navigator.push(
-          //       context,
-          //       MaterialPageRoute(
-          //         builder:
-          //             (context) =>
-          //                 VideoRecordPage(contractNo: widget.contractno),
+          IconButton(
+            icon: Icon(Icons.videocam),
+            tooltip: 'ถ่ายวิดีโอ',
+            onPressed: () async {
+              final result = await Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder:
+                      (context) =>
+                          VideoRecordPage(contractNo: widget.contractno),
                           
-          //       ),
-          //     );
-          //     // ถ้าต้องการรับผลลัพธ์จากหน้าวิดีโอ สามารถเขียนโค้ดจัดการที่นี่
-          //     if (result != null) {
-          //       // ทำอะไรบางอย่างกับผลลัพธ์ เช่น แสดง Snackbar, อัปเดต UI เป็นต้น
-          //     }
-          //   },
-          // ),
+                ),
+              );
+              // ถ้าต้องการรับผลลัพธ์จากหน้าวิดีโอ สามารถเขียนโค้ดจัดการที่นี่
+              if (result != null) {
+                // ทำอะไรบางอย่างกับผลลัพธ์ เช่น แสดง Snackbar, อัปเดต UI เป็นต้น
+              }
+            },
+          ),
           
           IconButton(
             icon: Icon(Icons.delete_forever),
