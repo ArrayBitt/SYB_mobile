@@ -17,7 +17,7 @@ class SaveRushPage extends StatefulWidget {
   final String aRname;
   final String tranferdate;
   final String estmdate;
-  
+  final List<String?> videoFilenames;
 
   const SaveRushPage({
     Key? key,
@@ -29,6 +29,7 @@ class SaveRushPage extends StatefulWidget {
     required this.aRname,
     required this.tranferdate,
     required this.estmdate,
+    required this.videoFilenames,
   }) : super(key: key);
 
   @override
@@ -282,6 +283,31 @@ class _SaveRushPageState extends State<SaveRushPage> {
       'picd': imageFilenames.length > 3 ? imageFilenames[3] : '',
       'pice': imageFilenames.length > 4 ? imageFilenames[4] : '',
       'picf': imageFilenames.length > 5 ? imageFilenames[5] : '',
+
+      'vido_a':
+          widget.videoFilenames.length > 0
+              ? widget.videoFilenames[0] ?? ''
+              : '',
+      'vido_b':
+          widget.videoFilenames.length > 1
+              ? widget.videoFilenames[1] ?? ''
+              : '',
+      'vido_c':
+          widget.videoFilenames.length > 2
+              ? widget.videoFilenames[2] ?? ''
+              : '',
+      'vido_d':
+          widget.videoFilenames.length > 3
+              ? widget.videoFilenames[3] ?? ''
+              : '',
+      'vido_e':
+          widget.videoFilenames.length > 4
+              ? widget.videoFilenames[4] ?? ''
+              : '',
+      'vido_f':
+          widget.videoFilenames.length > 5
+              ? widget.videoFilenames[5] ?? ''
+              : '',
     };
 
     print('📤 ส่งข้อมูลไปยัง API แรก: $url1');
@@ -351,18 +377,18 @@ class _SaveRushPageState extends State<SaveRushPage> {
     }
   }
 
-void _submitForm() async {
-  print('เริ่มบันทึกข้อมูล...');
+  void _submitForm() async {
+    print('เริ่มบันทึกข้อมูล...');
 
-  if (_selectedFollowType == null) {
-    print('ยังไม่ได้เลือกประเภทการตาม');
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('กรุณาเลือกประเภทการตาม')),
-    );
-    return;
-  }
+    if (_selectedFollowType == null) {
+      print('ยังไม่ได้เลือกประเภทการตาม');
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('กรุณาเลือกประเภทการตาม')));
+      return;
+    }
 
-  // เช็ค memo ไม่เกิน 250 ตัวอักษร
+    // เช็ค memo ไม่เกิน 250 ตัวอักษร
     if (_noteController.text.length > 250) {
       print('memo ยาวเกิน 250 ตัวอักษร');
       ScaffoldMessenger.of(context).showSnackBar(
@@ -372,42 +398,42 @@ void _submitForm() async {
     }
 
     // เช็คให้เลือกวันนัดชำระเสมอ (ไม่ว่าง)
-    if (_dueDateController.text.trim().isEmpty) {
-      print('ยังไม่ได้เลือกวันนัดชำระ');
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('กรุณาเลือกวันนัดชำระ')));
+    // if (_dueDateController.text.trim().isEmpty) {
+    //print('ยังไม่ได้เลือกวันนัดชำระ');
+    //ScaffoldMessenger.of(
+    // context,
+    //).showSnackBar(SnackBar(content: Text('กรุณาเลือกวันนัดชำระ')));
+    // return;
+    //}
+
+    final hasAtLeastOneImage = imageFilenames.any(
+      (filename) => filename != null && filename.trim().isNotEmpty,
+    );
+
+    if (!_formKey.currentState!.validate()) {
+      print('Form validation ไม่ผ่าน');
       return;
     }
 
-  final hasAtLeastOneImage = imageFilenames.any(
-    (filename) => filename != null && filename.trim().isNotEmpty,
-  );
+    setState(() => _isSaving = true);
+    final result = await _saveRush(); // now returns a Map
+    setState(() => _isSaving = false);
 
-  if (!_formKey.currentState!.validate()) {
-    print('Form validation ไม่ผ่าน');
-    return;
-  }
+    print('บันทึกสำเร็จหรือไม่: ${result['success']}');
 
-  setState(() => _isSaving = true);
-  final result = await _saveRush(); // now returns a Map
-  setState(() => _isSaving = false);
+    if (!result['success']) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(result['message'] ?? 'บันทึกไม่สำเร็จ โปรดลองใหม่'),
+        ),
+      );
+      return;
+    }
 
-  print('บันทึกสำเร็จหรือไม่: ${result['success']}');
-
-  if (!result['success']) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(result['message'] ?? 'บันทึกไม่สำเร็จ โปรดลองใหม่')),
-    );
-    return;
-  }
-
-  ScaffoldMessenger.of(context).showSnackBar(
-    SnackBar(content: Text('✅ บันทึกข้อมูลสำเร็จ')),
-  );
-  Navigator.pop(context);
-
-
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text('✅ บันทึกข้อมูลสำเร็จ')));
+    Navigator.pop(context);
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       showDialog(

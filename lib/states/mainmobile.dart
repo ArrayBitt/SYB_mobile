@@ -20,6 +20,7 @@ class _MainMobileState extends State<MainMobile> with WidgetsBindingObserver {
   bool _isLoading = false;
   TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
+List<String?> videoFileNames = ['', '', '', '', '', ''];
 
   List<dynamic> _contracts = [];
 
@@ -30,7 +31,9 @@ class _MainMobileState extends State<MainMobile> with WidgetsBindingObserver {
   }
 
   Future<void> _fetchData() async {
-    final username = widget.username;
+  
+   final username = widget.username;
+  
    final url = 'https://ss.cjk-cr.com/CJK/api/appfollowup/contract_api.php?username=$username';
    
     //final url ='http://192.168.1.15/CJKTRAINING/api/appfollowup/contract_api.php?username=$username';
@@ -77,16 +80,26 @@ class _MainMobileState extends State<MainMobile> with WidgetsBindingObserver {
     }
   }
 
-  void _makePhoneCall(String phoneNumber) async {
+ Future<void> _makePhoneCall(BuildContext context, String phoneNumber) async {
     final Uri launchUri = Uri(scheme: 'tel', path: phoneNumber);
-    if (await canLaunchUrl(launchUri)) {
-      await launchUrl(launchUri);
-    } else {
+    print('>>> โทรออก: $launchUri');
+
+    try {
+      final result = await launchUrl(
+        launchUri,
+        mode: LaunchMode.externalApplication,
+      );
+
+      if (!result) {
+        throw 'เปิดโทรศัพท์ไม่ได้';
+      }
+    } catch (e) {
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text('ไม่สามารถโทรออกได้')));
+      ).showSnackBar(SnackBar(content: Text('ไม่สามารถโทรออกได้: $e')));
     }
   }
+
 
   void _showError(String message) {
     showDialog(
@@ -198,7 +211,8 @@ class _MainMobileState extends State<MainMobile> with WidgetsBindingObserver {
                           aMount408: contract['amount408'],
                           aRname: contract['arname'],
                           tranferdate: contract['tranferdate'],
-                          estmdate: contract['estm_date'],
+                          estmdate: contract['estm_date'], 
+                          videoFilenames: videoFileNames, 
 
                         ),
                   ),
@@ -292,7 +306,7 @@ class _MainMobileState extends State<MainMobile> with WidgetsBindingObserver {
         backgroundColor: Colors.white,
         elevation: 4,
         centerTitle: true,
-        title: Text('สัญญาเร่งรัด (version 1.3)', style: titleStyle),
+        title: Text('สัญญาเร่งรัด (V 1.6)', style: titleStyle),
         iconTheme: IconThemeData(color: Colors.black87),
         actions: [
           IconButton(
@@ -479,14 +493,21 @@ class _MainMobileState extends State<MainMobile> with WidgetsBindingObserver {
                                               final rawPhone =
                                                   contract['mobileno']
                                                       .toString();
-                                              final cleanedPhone = rawPhone
+                                             final cleanedPhone = rawPhone
                                                   .replaceAll(
                                                     RegExp(r'[^0-9+]'),
                                                     '',
                                                   );
+                                              print(
+                                                'เบอร์ที่ล้างแล้ว: $cleanedPhone',
+                                              );
+
 
                                               if (cleanedPhone.isNotEmpty) {
-                                                _makePhoneCall(cleanedPhone);
+                                                _makePhoneCall(
+                                                  context,
+                                                  cleanedPhone,
+                                                );
                                               } else {
                                                 ScaffoldMessenger.of(
                                                   context,

@@ -2,7 +2,7 @@ name: cjk
 description: "A new Flutter project."
 publish_to: 'none'
 
-version: 1.0.0+3
+version: 1.0.0+6
 
 environment:
   sdk: ^3.7.2
@@ -33,7 +33,11 @@ dependencies:
   device_info_plus: ^11.4.0
   qr_flutter: ^4.0.0
   barcode_widget: ^2.0.1
-  package_info_plus: ^8.3.0 
+  package_info_plus: ^8.3.0
+  video_player: ^2.7.0
+  camera: ^0.10.0+4
+
+
  
   
 

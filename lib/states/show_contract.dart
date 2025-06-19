@@ -81,8 +81,7 @@ class _ShowContractPageState extends State<ShowContractPage> {
       ).showSnackBar(SnackBar(content: Text('ไม่พบเลขที่สัญญา')));
     }
   }
-
-  @override
+@override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
@@ -108,104 +107,7 @@ class _ShowContractPageState extends State<ShowContractPage> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceBetween,
-                                children: [
-                                  _buildTitle('📌 ข้อมูลสัญญา'),
-                                  ElevatedButton.icon(
-                                    onPressed: () {
-                                      final contractNo =
-                                          contractData?['contractno'];
-                                      if (contractNo != null &&
-                                          contractNo.toString().isNotEmpty) {
-                                        Navigator.push(
-                                          context,
-                                          MaterialPageRoute(
-                                            builder:
-                                                (context) => ContractImagePage(
-                                                  contractNo: contractNo,
-                                                ),
-                                          ),
-                                        );
-                                      } else {
-                                        ScaffoldMessenger.of(
-                                          context,
-                                        ).showSnackBar(
-                                          SnackBar(
-                                            content: Text('ไม่พบเลขที่สัญญา'),
-                                          ),
-                                        );
-                                      }
-                                    },
-
-                                    icon: Icon(Icons.image, size: 18),
-
-                                    label: Text(
-                                      'ภาพสัญญา',
-                                      style: GoogleFonts.prompt(fontSize: 14),
-                                    ),
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: Colors.teal[300],
-                                      foregroundColor: Colors.white,
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(10),
-                                      ),
-                                      padding: EdgeInsets.symmetric(
-                                        horizontal: 10,
-                                        vertical: 8,
-                                      ),
-                                      elevation: 2,
-                                    ),
-                                  ),
-
-                                  ElevatedButton.icon(
-                                    onPressed: () {
-                                      final contractNo =
-                                          contractData?['contractno'];
-                                      if (contractNo != null &&
-                                          contractNo.toString().isNotEmpty) {
-                                        Navigator.push(
-                                          context,
-                                          MaterialPageRoute(
-                                            builder:
-                                                (context) => PayAS400Page(
-                                                  contractNo: contractNo,
-                                                ),
-                                          ),
-                                        );
-                                      } else {
-                                        ScaffoldMessenger.of(
-                                          context,
-                                        ).showSnackBar(
-                                          SnackBar(
-                                            content: Text('ไม่พบเลขที่สัญญา'),
-                                          ),
-                                        );
-                                      }
-                                    },
-                                    icon: Icon(Icons.payment, size: 18),
-                                    label: Text(
-                                      'ชำระเงิน',
-                                      style: GoogleFonts.prompt(fontSize: 14),
-                                    ),
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: Colors.red[400],
-                                      foregroundColor: Colors.white,
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(10),
-                                      ),
-                                      padding: EdgeInsets.symmetric(
-                                        horizontal: 10,
-                                        vertical: 8,
-                                      ),
-                                      elevation: 2,
-                                    ),
-                                  ),
-
-                                ],
-                              ),
-
+                              _buildTitle('📌 ข้อมูลสัญญา'),
                               Divider(),
                               _buildDetailTile(
                                 Icons.receipt_long,
@@ -297,85 +199,168 @@ class _ShowContractPageState extends State<ShowContractPage> {
                       ),
                     ),
           ),
+
+          // ปุ่มล่างทั้งหมด
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 10),
-            child: Row(
+            child: Column(
               children: [
-                Expanded(
-                  child: ElevatedButton(
-                    onPressed: () {
-                      final contractNo = contractData?['contractno'];
-                      if (contractNo != null &&
-                          contractNo.toString().isNotEmpty) {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder:
-                                (context) =>
-                                    CardCutPage(contractNo: contractNo),
+                Row(
+                  children: [
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        onPressed: () {
+                          final contractNo = contractData?['contractno'];
+                          if (contractNo != null &&
+                              contractNo.toString().isNotEmpty) {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder:
+                                    (context) => ContractImagePage(
+                                      contractNo: contractNo,
+                                    ),
+                              ),
+                            );
+                          } else {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text('ไม่พบเลขที่สัญญา')),
+                            );
+                          }
+                        },
+                        icon: Icon(Icons.image, size: 18),
+                        label: Text(
+                          'ภาพสัญญา',
+                          style: GoogleFonts.prompt(fontSize: 14),
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.teal[300],
+                          foregroundColor: Colors.white,
+                          padding: EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
                           ),
-                        );
-                      } else {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text('ไม่พบเลขที่สัญญา')),
-                        );
-                      }
-                    },
-
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.amber[800],
-                      foregroundColor: Colors.white,
-                      padding: EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
+                        ),
                       ),
                     ),
-                    child: Text(
-                      'การ์ดชำระลูกหนี้',
-                      style: GoogleFonts.prompt(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
+                    SizedBox(width: 10),
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        onPressed: () {
+                          final contractNo = contractData?['contractno'];
+                          if (contractNo != null &&
+                              contractNo.toString().isNotEmpty) {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder:
+                                    (context) =>
+                                        PayAS400Page(contractNo: contractNo),
+                              ),
+                            );
+                          } else {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text('ไม่พบเลขที่สัญญา')),
+                            );
+                          }
+                        },
+                        icon: Icon(Icons.payment, size: 18),
+                        label: Text(
+                          'ชำระเงิน',
+                          style: GoogleFonts.prompt(fontSize: 14),
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.red[400],
+                          foregroundColor: Colors.white,
+                          padding: EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                        ),
                       ),
                     ),
-                  ),
+                  ],
                 ),
-                SizedBox(width: 10),
-                Expanded(
-                  child: ElevatedButton(
-                    onPressed: () {
-                      final contractNo = contractData?['contractno'];
-                      if (contractNo != null &&
-                          contractNo.toString().isNotEmpty) {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder:
-                                (context) =>
-                                    FollowContractPage(contractNo: contractNo),
+                SizedBox(height: 10),
+                Row(
+                  children: [
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: () {
+                          final contractNo = contractData?['contractno'];
+                          if (contractNo != null &&
+                              contractNo.toString().isNotEmpty) {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder:
+                                    (context) =>
+                                        CardCutPage(contractNo: contractNo),
+                              ),
+                            );
+                          } else {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text('ไม่พบเลขที่สัญญา')),
+                            );
+                          }
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.amber[800],
+                          foregroundColor: Colors.white,
+                          padding: EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
                           ),
-                        );
-                      } else {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text('ไม่พบเลขที่สัญญา')),
-                        );
-                      }
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.blueGrey,
-                      foregroundColor: Colors.white,
-                      padding: EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: Text(
+                          'การ์ดชำระลูกหนี้',
+                          style: GoogleFonts.prompt(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                       ),
                     ),
-                    child: Text(
-                      'การติดตาม',
-                      style: GoogleFonts.prompt(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
+                    SizedBox(width: 10),
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: () {
+                          final contractNo = contractData?['contractno'];
+                          if (contractNo != null &&
+                              contractNo.toString().isNotEmpty) {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder:
+                                    (context) => FollowContractPage(
+                                      contractNo: contractNo,
+                                    ),
+                              ),
+                            );
+                          } else {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text('ไม่พบเลขที่สัญญา')),
+                            );
+                          }
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.blueGrey,
+                          foregroundColor: Colors.white,
+                          padding: EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                        ),
+                        child: Text(
+                          'การติดตาม',
+                          style: GoogleFonts.prompt(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                       ),
                     ),
-                  ),
+                  ],
                 ),
               ],
             ),
@@ -384,6 +369,7 @@ class _ShowContractPageState extends State<ShowContractPage> {
       ),
     );
   }
+
 
   Widget _buildTitle(String title) {
     return Text(

@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'dart:convert';
+import 'package:cjk/states/videoRecordPage.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -10,6 +11,7 @@ import 'package:http/http.dart' as http;
 import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:device_info_plus/device_info_plus.dart';
+import 'package:flutter/services.dart';
 
 class CameraGridPage extends StatefulWidget {
   final String contractno;
@@ -79,10 +81,17 @@ class _CameraGridPageState extends State<CameraGridPage> {
     List<File?> tempFiles = List.generate(6, (index) => null);
 
     for (int i = 0; i < savedPaths.length; i++) {
-      if (savedPaths[i].isNotEmpty) {
-        final file = File(savedPaths[i]);
-        if (await file.exists()) {
-          tempFiles[i] = file;
+      String pathStr = savedPaths[i];
+      File localFile = File(pathStr);
+
+      if (pathStr.isNotEmpty && await localFile.exists()) {
+        tempFiles[i] = localFile;
+      } else {
+        // โหลดจาก server ถ้าไม่มีในเครื่อง
+        File? downloaded = await _downloadImageFromServerIfNeeded(i);
+        if (downloaded != null) {
+          tempFiles[i] = downloaded;
+          await _saveImagePaths(i, downloaded.path);
         }
       }
     }
@@ -90,6 +99,29 @@ class _CameraGridPageState extends State<CameraGridPage> {
     setState(() {
       _imageFiles = tempFiles;
     });
+  }
+
+  Future<File?> _downloadImageFromServerIfNeeded(int index) async {
+    try {
+      final directory = await getApplicationDocumentsDirectory();
+      String fileName =
+          '${widget.contractno}_${String.fromCharCode(65 + index)}.jpg';
+      String url = 'https://ss.cjk-cr.com/CJK/images/$fileName';
+      //String url = 'https://ss.cjk-cr.com/CJKTRAINING/images/$fileName';
+      String localPath = path.join(directory.path, fileName);
+
+      final response = await http.get(Uri.parse(url));
+      if (response.statusCode == 200) {
+        File file = File(localPath);
+        await file.writeAsBytes(response.bodyBytes);
+        return file;
+      } else {
+        print('🔸 ไม่พบรูปจาก server: $url');
+      }
+    } catch (e) {
+      print('❌ Error downloading image: $e');
+    }
+    return null;
   }
 
   Future<void> _pickImage(int index, ImageSource source) async {
@@ -155,12 +187,13 @@ class _CameraGridPageState extends State<CameraGridPage> {
       _textControllers.forEach((controller) => controller.clear());
     });
   }
-Future<List<String>> _uploadImagesToPicUploadAPI(
+
+  Future<List<String>> _uploadImagesToPicUploadAPI(
     List<File?> imageFiles,
   ) async {
-    final uri = Uri.parse(
-      'https://ss.cjk-cr.com/CJK/api/appfollowup/picupload_api.php',
-    );
+    final uri = Uri.parse( 'https://ss.cjk-cr.com/CJK/api/appfollowup/picupload_api.php', );
+
+    //final uri = Uri.parse( 'https://ss.cjk-cr.com/CJKTRAINING/api/appfollowup/picupload_api.php',);
 
     var request = http.MultipartRequest('POST', uri);
 
@@ -183,7 +216,7 @@ Future<List<String>> _uploadImagesToPicUploadAPI(
         print('✅ อัปโหลดเสร็จเรียบร้อย');
 
         List<String> uploadedFileNames = [];
-       if (decoded['files'] != null) {
+        if (decoded['files'] != null) {
           for (var f in decoded['files']) {
             uploadedFileNames.add(f['file_name']);
           }
@@ -199,7 +232,7 @@ Future<List<String>> _uploadImagesToPicUploadAPI(
     }
   }
 
-void _saveImagesAndReturn() async {
+  void _saveImagesAndReturn() async {
     if (_imageFiles.any((file) => file != null)) {
       try {
         List<String> uploadedFileNames = await _uploadImagesToPicUploadAPI(
@@ -230,7 +263,6 @@ void _saveImagesAndReturn() async {
     }
   }
 
-
   @override
   Widget build(BuildContext context) {
     final yellow = Colors.amber.shade700;
@@ -247,6 +279,26 @@ void _saveImagesAndReturn() async {
         foregroundColor: Colors.white,
         elevation: 2,
         actions: [
+          // IconButton(
+          //   icon: Icon(Icons.videocam),
+          //   tooltip: 'ถ่ายวิดีโอ',
+          //   onPressed: () async {
+          //     final result = await Navigator.push(
+          //       context,
+          //       MaterialPageRoute(
+          //         builder:
+          //             (context) =>
+          //                 VideoRecordPage(contractNo: widget.contractno),
+                          
+          //       ),
+          //     );
+          //     // ถ้าต้องการรับผลลัพธ์จากหน้าวิดีโอ สามารถเขียนโค้ดจัดการที่นี่
+          //     if (result != null) {
+          //       // ทำอะไรบางอย่างกับผลลัพธ์ เช่น แสดง Snackbar, อัปเดต UI เป็นต้น
+          //     }
+          //   },
+          // ),
+          
           IconButton(
             icon: Icon(Icons.delete_forever),
             onPressed: () {
@@ -336,7 +388,6 @@ void _saveImagesAndReturn() async {
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               Expanded(
-                                
                                 child:
                                     _imageFiles[index] != null
                                         ? Image.file(
@@ -345,7 +396,6 @@ void _saveImagesAndReturn() async {
                                           width: double.infinity,
                                         )
                                         : Container(
-                                         
                                           child: Icon(
                                             Icons.photo_camera,
                                             size: 50,
@@ -353,13 +403,14 @@ void _saveImagesAndReturn() async {
                                         ),
                               ),
                               SizedBox(height: 8),
-                               Text(
+                              Text(
                                 '${widget.contractno}_${String.fromCharCode(65 + index)}',
                                 style: TextStyle(
                                   color: Colors.grey.shade600,
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),
+                              
                             ],
                           ),
                         ),
@@ -368,7 +419,6 @@ void _saveImagesAndReturn() async {
                   },
                 ),
               ),
-
             ],
           ),
         ),
