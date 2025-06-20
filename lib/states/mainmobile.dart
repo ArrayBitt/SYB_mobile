@@ -306,7 +306,7 @@ List<String?> videoFileNames = ['', '', '', '', '', ''];
         backgroundColor: Colors.white,
         elevation: 4,
         centerTitle: true,
-        title: Text('สัญญาเร่งรัด (V 1.6)', style: titleStyle),
+        title: Text('สัญญาเร่งรัด (V 1.8)', style: titleStyle),
         iconTheme: IconThemeData(color: Colors.black87),
         actions: [
           IconButton(

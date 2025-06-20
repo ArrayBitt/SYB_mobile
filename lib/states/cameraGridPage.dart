@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'dart:convert';
 import 'package:cjk/states/videoRecordPage.dart';
@@ -187,50 +188,63 @@ class _CameraGridPageState extends State<CameraGridPage> {
       _textControllers.forEach((controller) => controller.clear());
     });
   }
-
   Future<List<String>> _uploadImagesToPicUploadAPI(
     List<File?> imageFiles,
   ) async {
-    final uri = Uri.parse( 'https://ss.cjk-cr.com/CJK/api/appfollowup/picupload_api.php', );
-
-    //final uri = Uri.parse( 'https://ss.cjk-cr.com/CJKTRAINING/api/appfollowup/picupload_api.php',);
-
+    final uri = Uri.parse(
+      'https://ss.cjk-cr.com/CJK/api/appfollowup/picupload_api.php',
+    );
     var request = http.MultipartRequest('POST', uri);
 
+    // เพิ่ม debug log และแนบไฟล์
     for (int i = 0; i < imageFiles.length; i++) {
       if (imageFiles[i] != null) {
+        int fileSize = await imageFiles[i]!.length();
+        print('📤 Uploading img$i: ${imageFiles[i]!.path} ($fileSize bytes)');
+
         var pic = await http.MultipartFile.fromPath(
-          'file${String.fromCharCode(65 + i)}',
+          'img$i',
           imageFiles[i]!.path,
         );
         request.files.add(pic);
       }
     }
 
-    var response = await request.send();
-    final respStr = await response.stream.bytesToString();
+    try {
+      final streamedResponse = await request.send().timeout(
+        Duration(seconds: 120), // เพิ่ม timeout เป็น 120 วินาที
+      );
+      final respStr = await streamedResponse.stream.bytesToString();
 
-    if (response.statusCode == 200) {
-      final decoded = json.decode(respStr);
-      if (decoded['status'] == 'success') {
-        print('✅ อัปโหลดเสร็จเรียบร้อย');
-
-        List<String> uploadedFileNames = [];
-        if (decoded['files'] != null) {
-          for (var f in decoded['files']) {
-            uploadedFileNames.add(f['file_name']);
+      if (streamedResponse.statusCode == 200) {
+        final decoded = json.decode(respStr);
+        if (decoded['status'] == 'success') {
+          print('✅ อัปโหลดเสร็จเรียบร้อย');
+          List<String> uploadedFileNames = [];
+          if (decoded['files'] != null) {
+            for (var f in decoded['files']) {
+              uploadedFileNames.add(f['file_name']);
+            }
           }
+          return uploadedFileNames;
+        } else {
+          throw Exception(decoded['message'] ?? 'เกิดข้อผิดพลาดจาก API');
         }
-
-        return uploadedFileNames;
       } else {
-        // 👇 ดึง message จาก API และโยน exception
-        throw Exception(decoded['message'] ?? 'เกิดข้อผิดพลาดจาก API');
+        throw Exception('HTTP Error ${streamedResponse.statusCode}');
       }
-    } else {
-      throw Exception('HTTP Error ${response.statusCode}');
+    } on SocketException catch (e) {
+      print('📡 SocketException: $e');
+      throw Exception('📡 การเชื่อมต่อล้มเหลว: $e');
+    } on TimeoutException catch (e) {
+      print('⏳ TimeoutException: $e');
+      throw Exception('⏳ การเชื่อมต่อหมดเวลา: $e');
+    } catch (e) {
+      print('❌ Unknown Error: $e');
+      throw Exception('❌ เกิดข้อผิดพลาด: $e');
     }
   }
+
 
   void _saveImagesAndReturn() async {
     if (_imageFiles.any((file) => file != null)) {
@@ -289,7 +303,6 @@ class _CameraGridPageState extends State<CameraGridPage> {
                   builder:
                       (context) =>
                           VideoRecordPage(contractNo: widget.contractno),
-                          
                 ),
               );
               // ถ้าต้องการรับผลลัพธ์จากหน้าวิดีโอ สามารถเขียนโค้ดจัดการที่นี่
@@ -298,7 +311,7 @@ class _CameraGridPageState extends State<CameraGridPage> {
               }
             },
           ),
-          
+
           IconButton(
             icon: Icon(Icons.delete_forever),
             onPressed: () {
@@ -410,7 +423,6 @@ class _CameraGridPageState extends State<CameraGridPage> {
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),
-                              
                             ],
                           ),
                         ),
