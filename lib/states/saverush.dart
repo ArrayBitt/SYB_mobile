@@ -17,6 +17,9 @@ class SaveRushPage extends StatefulWidget {
   final String aRname;
   final String tranferdate;
   final String estmdate;
+  final String hp_overdueamt;
+  final String follow400;
+  final String seqno;
   final List<String?> videoFilenames;
 
   const SaveRushPage({
@@ -30,6 +33,9 @@ class SaveRushPage extends StatefulWidget {
     required this.tranferdate,
     required this.estmdate,
     required this.videoFilenames,
+    required this.hp_overdueamt,
+    required this.seqno,
+    required this.follow400,
   }) : super(key: key);
 
   @override
@@ -39,6 +45,11 @@ class SaveRushPage extends StatefulWidget {
 class _SaveRushPageState extends State<SaveRushPage> {
   final _formKey = GlobalKey<FormState>();
 
+    // ตัวแปรนี้ใช้เก็บสถานะว่าควรส่ง '0.00' แทนค่าจริงหรือไม่
+  bool _shouldForceZeroOnNextSaves = false;
+
+  // ตัวแปรล็อก TextField ค่าติดตาม
+  bool _disableFollowFee = false;
   String? _selectedPersonType;
   String fperson = ''; // เก็บค่าประเภทบุคคลที่เลือกหรือกรอกเอง
   bool _isOtherPerson = false;
@@ -111,11 +122,28 @@ class _SaveRushPageState extends State<SaveRushPage> {
   // ✅ เพิ่มตรงนี้ เพื่อเก็บชื่อไฟล์รูปจากกล้อง
   List<String?> imageFilenames = List.filled(6, null);
 
-  @override
+@override
   void initState() {
     super.initState();
     _fetchFollowTypes();
+
+    final hpOverdueAmtNum = double.tryParse(widget.hp_overdueamt) ?? 0.0;
+    final follow400Num = double.tryParse(widget.follow400) ?? 0.0;
+
+    if (hpOverdueAmtNum <= 1000) {
+      _disableFollowFee = true;
+      _followFeeController.text = '0.00';
+      _shouldForceZeroOnNextSaves = false;
+    } else if (hpOverdueAmtNum > 1000 && follow400Num == 0.0) {
+      _disableFollowFee = true;
+      _followFeeController.text = '400.00';
+      _shouldForceZeroOnNextSaves = true;
+    } else {
+      _disableFollowFee = false;
+      _shouldForceZeroOnNextSaves = false;
+    }
   }
+
 
   String formatThaiDate(String input) {
     try {
@@ -134,10 +162,10 @@ class _SaveRushPageState extends State<SaveRushPage> {
   }
 
   Future<void> _fetchFollowTypes() async {
-    const url =
-        'https://ss.cjk-cr.com/CJK/api/appfollowup/get_followtype.php?followtype=M-1';
+     const url ='https://ss.cjk-cr.com/CJK/api/appfollowup/get_followtype.php?followtype=M-1';
 
-    //const url ='http://192.168.1.15/CJKTRAINING/api/appfollowup/get_followtype.php?followtype=M-1';
+    // const url =
+    //     'http://192.168.1.15/CJKTRAINING/api/appfollowup/get_followtype.php?followtype=M-1';
 
     try {
       final res = await http.get(Uri.parse(url));
@@ -254,8 +282,11 @@ class _SaveRushPageState extends State<SaveRushPage> {
       print('⚠️ ไม่สามารถดึงตำแหน่งได้: $e');
     }
 
-    final String url1 =
-        'https://ss.cjk-cr.com/CJK/api/appfollowup/up_saverush.php?contractno=${widget.contractNo}';
+    final String url1 = 'https://ss.cjk-cr.com/CJK/api/appfollowup/up_saverush.php?contractno=${widget.contractNo}';
+
+    // final String url1 =
+    //     'http://192.168.1.15/CJKTRAINING/api/appfollowup/up_saverush.php?contractno=${widget.contractNo}';
+
     final data1 = {
       'contractno': widget.contractNo,
       'memo': _noteController.text,
@@ -283,31 +314,6 @@ class _SaveRushPageState extends State<SaveRushPage> {
       'picd': imageFilenames.length > 3 ? imageFilenames[3] : '',
       'pice': imageFilenames.length > 4 ? imageFilenames[4] : '',
       'picf': imageFilenames.length > 5 ? imageFilenames[5] : '',
-
-      'vido_a':
-          widget.videoFilenames.length > 0
-              ? widget.videoFilenames[0] ?? ''
-              : '',
-      'vido_b':
-          widget.videoFilenames.length > 1
-              ? widget.videoFilenames[1] ?? ''
-              : '',
-      'vido_c':
-          widget.videoFilenames.length > 2
-              ? widget.videoFilenames[2] ?? ''
-              : '',
-      'vido_d':
-          widget.videoFilenames.length > 3
-              ? widget.videoFilenames[3] ?? ''
-              : '',
-      'vido_e':
-          widget.videoFilenames.length > 4
-              ? widget.videoFilenames[4] ?? ''
-              : '',
-      'vido_f':
-          widget.videoFilenames.length > 5
-              ? widget.videoFilenames[5] ?? ''
-              : '',
     };
 
     print('📤 ส่งข้อมูลไปยัง API แรก: $url1');
@@ -334,8 +340,11 @@ class _SaveRushPageState extends State<SaveRushPage> {
       }
 
       // ✅ API ที่ 2
-      final String url2 =
-          'https://ss.cjk-cr.com/CJK/api/appfollowup/update_checkrush.php?contractno=${widget.contractNo}';
+      final String url2 ='https://ss.cjk-cr.com/CJK/api/appfollowup/update_checkrush.php?contractno=${widget.contractNo}';
+
+      // final String url2 =
+      //     'http://192.168.1.15/CJKTRAINING/api/appfollowup/update_checkrush.php?contractno=${widget.contractNo}';
+
       final data2 = {
         'contractno': widget.contractNo,
         'tranferdate': widget.tranferdate,
@@ -369,7 +378,49 @@ class _SaveRushPageState extends State<SaveRushPage> {
         };
       }
 
-      print('✅ บันทึกสำเร็จทั้ง 2 API');
+      // ✅ API ที่ 3
+      final String url3 ='https://ss.cjk-cr.com/CJK/api/appfollowup/uprush_test.php?contractno=${widget.contractNo}';
+
+      // final String url3 =
+      //     'http://192.168.1.15/CJKTRAINING/api/appfollowup/uprush_test.php?contractno=${widget.contractNo}';
+
+      final data3 = {
+        'contractno': widget.contractNo,
+        'entrydate': entryDate,
+        'followtype': _selectedFollowType ?? '',
+        'username': widget.username,
+        'follower': widget.username,
+        'followamount': _followFeeController.text,
+        'timeupdate': timeUpdate,
+        'seqno': widget.seqno.toString(),
+      };
+
+      print('📤 ส่งข้อมูลไปยัง API ที่สาม: $url3');
+      print('📦 Payload API ที่สาม: $data3');
+
+      final res3 = await http.post(
+        Uri.parse(url3),
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode(data3),
+      );
+
+      print('📥 Response API ที่สาม Code: ${res3.statusCode}');
+      print('📥 Response API ที่สาม Body: ${res3.body}');
+
+      final responseData3 = json.decode(res3.body);
+
+      if (res3.statusCode != 200 || responseData3['status'] != 'success') {
+        final msg =
+            responseData3 is Map && responseData3.containsKey('message')
+                ? responseData3['message']
+                : 'เกิดข้อผิดพลาดจาก API ที่สาม';
+        return {
+          'success': false,
+          'message': '❌ API บันทึก tblfollowup_ntl ล้มเหลว: $msg',
+        };
+      }
+
+      print('✅ บันทึกสำเร็จทั้ง 3 API');
       return {'success': true};
     } catch (e) {
       print('❌ เกิดข้อผิดพลาดขณะส่งข้อมูล: $e');
@@ -396,15 +447,6 @@ class _SaveRushPageState extends State<SaveRushPage> {
       );
       return;
     }
-
-    // เช็คให้เลือกวันนัดชำระเสมอ (ไม่ว่าง)
-    // if (_dueDateController.text.trim().isEmpty) {
-    //print('ยังไม่ได้เลือกวันนัดชำระ');
-    //ScaffoldMessenger.of(
-    // context,
-    //).showSnackBar(SnackBar(content: Text('กรุณาเลือกวันนัดชำระ')));
-    // return;
-    //}
 
     final hasAtLeastOneImage = imageFilenames.any(
       (filename) => filename != null && filename.trim().isNotEmpty,
@@ -489,7 +531,11 @@ class _SaveRushPageState extends State<SaveRushPage> {
                     ),
                     _buildInfoRow('วันนัดชำระ', _dueDateController.text),
                     _buildInfoRow('จำนวนเงิน', _amountController.text),
-                    _buildInfoRow('ค่าติดตาม', _followFeeController.text),
+                    _buildInfoRow(
+                      'ค่าติดตาม (ระบบคำนวณ)',
+                      _followFeeController.text,
+                    ),
+
                     _buildInfoRow('ระยะไมล์', _mileageController.text),
                     _buildInfoRow('สถานที่', locationController.text),
                     _buildInfoRow(
@@ -661,6 +707,7 @@ class _SaveRushPageState extends State<SaveRushPage> {
     int maxLines = 1,
     TextInputType keyboardType = TextInputType.text,
     FormFieldValidator<String>? validator,
+    bool enabled = true, // เพิ่มพารามิเตอร์นี้ (ดีฟอลต์เป็น true)
   }) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
@@ -669,6 +716,7 @@ class _SaveRushPageState extends State<SaveRushPage> {
         maxLines: maxLines,
         keyboardType: keyboardType,
         style: GoogleFonts.prompt(),
+        enabled: enabled, // เพิ่มตรงนี้สำหรับเปิด/ปิดการกรอก
         decoration: InputDecoration(
           prefixIcon: Icon(icon, color: Colors.amber.shade800),
           labelText: label,
@@ -824,6 +872,46 @@ class _SaveRushPageState extends State<SaveRushPage> {
                       Expanded(
                         child: Text(
                           '${widget.aMount408}',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.black87,
+                          ),
+                          textAlign: TextAlign.right,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Container(
+                  padding: EdgeInsets.all(16),
+                  margin: EdgeInsets.only(bottom: 16),
+                  decoration: BoxDecoration(
+                    color: Colors.amber.shade100,
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.amber.withOpacity(0.3),
+                        blurRadius: 8,
+                        offset: Offset(0, 3),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.payment, color: Colors.amber.shade700),
+                      SizedBox(width: 12),
+                      Text(
+                        'ค่างวดคงค้าง: ',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.amber.shade900,
+                        ),
+                      ),
+                      Expanded(
+                        child: Text(
+                          '${widget.hp_overdueamt}',
                           style: TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
@@ -1382,11 +1470,12 @@ class _SaveRushPageState extends State<SaveRushPage> {
                       return null;
                     },
                   ),
-                  _buildTextField(
+                 _buildTextField(
                     label: 'ค่าติดตาม',
                     icon: Icons.attach_money,
                     controller: _followFeeController,
                     keyboardType: TextInputType.number,
+                    enabled: !_disableFollowFee, // <== เพิ่มบรรทัดนี้
                     validator: (value) {
                       if (value == null || value.isEmpty) {
                         return 'กรุณากรอกค่าติดตาม';
@@ -1397,6 +1486,8 @@ class _SaveRushPageState extends State<SaveRushPage> {
                       return null;
                     },
                   ),
+
+
                   _buildTextField(
                     label: 'ระยะไมล์',
                     icon: Icons.directions_car,

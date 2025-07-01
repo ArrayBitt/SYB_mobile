@@ -28,9 +28,9 @@ class _PayAS400PageState extends State<PayAS400Page> {
   }
 
   Future<void> fetchQRData() async {
-    final url = Uri.parse(
-      'https://ss.cjk-cr.com/CJK/api/appfollowup/pay_as400.php?contractno=${widget.contractNo}',
-    );
+    final url = Uri.parse( 'https://ss.cjk-cr.com/CJK/api/appfollowup/pay_as400.php?contractno=${widget.contractNo}',);
+
+    //final url = Uri.parse('http://192.168.1.15/CJKTRAINING/api/appfollowup/pay_as400.php?contractno=${widget.contractNo}', );
 
     try {
       final response = await http.get(url);

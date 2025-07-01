@@ -1,15 +1,14 @@
+import 'package:cjk/utils/user_prefs.dart'; // เพิ่มบรรทัดนี้
+import 'package:cjk/states/authen.dart';
+import 'package:cjk/states/mainmobile.dart';
 import 'package:cjk/utils/check_version.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:cjk/states/authen.dart'; // นำเข้าหน้าล็อกอิน
-import 'package:cjk/states/mainmobile.dart'; // นำเข้าหน้าหลัก
-
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  final userJson = await getUserJson(); // ใช้ฟังก์ชันที่คุณเขียนไว้
+  final userJson = await getUserJson();
 
-  final prefs = await SharedPreferences.getInstance();
   final String? username = userJson?['username'];
 
   runApp(MyApp(username: username));
@@ -17,7 +16,6 @@ void main() async {
 
 class MyApp extends StatelessWidget {
   final String? username;
-
   const MyApp({this.username, super.key});
 
   @override
@@ -34,7 +32,6 @@ class MyApp extends StatelessWidget {
   }
 }
 
-// ✅ สร้าง widget ใหม่เพื่อรัน checkAppVersion หลัง context สร้างเสร็จ
 class AppWithVersionCheck extends StatefulWidget {
   final String username;
   const AppWithVersionCheck({super.key, required this.username});
@@ -47,7 +44,6 @@ class _AppWithVersionCheckState extends State<AppWithVersionCheck> {
   @override
   void initState() {
     super.initState();
-    // เรียกเช็คเวอร์ชันเมื่อโหลด widget นี้
     WidgetsBinding.instance.addPostFrameCallback((_) {
       checkAppVersion(context);
     });

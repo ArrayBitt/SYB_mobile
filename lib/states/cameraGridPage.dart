@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'dart:io';
-import 'dart:convert';
+import 'package:cjk/states/upload_service.dart';
 import 'package:cjk/states/videoRecordPage.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
@@ -12,7 +12,7 @@ import 'package:http/http.dart' as http;
 import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:device_info_plus/device_info_plus.dart';
-import 'package:flutter/services.dart';
+import 'dart:ui' as ui;
 
 class CameraGridPage extends StatefulWidget {
   final String contractno;
@@ -30,6 +30,10 @@ class _CameraGridPageState extends State<CameraGridPage> {
     (index) => TextEditingController(),
   );
 
+  final ValueNotifier<String> _uploadStatusNotifier = ValueNotifier<String>(
+    '',
+  ); // popup status controller
+
   String _getPrefKey() => 'imagePaths_${widget.contractno}';
 
   @override
@@ -44,6 +48,53 @@ class _CameraGridPageState extends State<CameraGridPage> {
         prefs.getStringList(_getPrefKey()) ?? List.filled(6, '');
     savedPaths[index] = imagePath;
     await prefs.setStringList(_getPrefKey(), savedPaths);
+  }
+
+  Future<bool> _requestAllPermissions() async {
+    if (kIsWeb) return true;
+
+    if (Platform.isAndroid) {
+      var androidInfo = await DeviceInfoPlugin().androidInfo;
+      if (androidInfo.version.sdkInt >= 33) {
+        var cameraStatus = await Permission.camera.status;
+        var photosStatus = await Permission.photos.status;
+
+        if (!cameraStatus.isGranted) {
+          cameraStatus = await Permission.camera.request();
+        }
+        if (!photosStatus.isGranted) {
+          photosStatus = await Permission.photos.request();
+        }
+
+        return cameraStatus.isGranted && photosStatus.isGranted;
+      } else {
+        var cameraStatus = await Permission.camera.status;
+        var storageStatus = await Permission.storage.status;
+
+        if (!cameraStatus.isGranted) {
+          cameraStatus = await Permission.camera.request();
+        }
+        if (!storageStatus.isGranted) {
+          storageStatus = await Permission.storage.request();
+        }
+
+        return cameraStatus.isGranted && storageStatus.isGranted;
+      }
+    } else if (Platform.isIOS) {
+      var cameraStatus = await Permission.camera.status;
+      var photosStatus = await Permission.photos.status;
+
+      if (!cameraStatus.isGranted) {
+        cameraStatus = await Permission.camera.request();
+      }
+      if (!photosStatus.isGranted) {
+        photosStatus = await Permission.photos.request();
+      }
+
+      return cameraStatus.isGranted && photosStatus.isGranted;
+    }
+
+    return false;
   }
 
   Future<bool> _requestGalleryPermission() async {
@@ -107,8 +158,7 @@ class _CameraGridPageState extends State<CameraGridPage> {
       final directory = await getApplicationDocumentsDirectory();
       String fileName =
           '${widget.contractno}_${String.fromCharCode(65 + index)}.jpg';
-      String url = 'https://ss.cjk-cr.com/CJK/images/$fileName';
-      //String url = 'https://ss.cjk-cr.com/CJKTRAINING/images/$fileName';
+      String url = 'https://ss.cjk-cr.com/Pictures/$fileName';
       String localPath = path.join(directory.path, fileName);
 
       final response = await http.get(Uri.parse(url));
@@ -126,7 +176,7 @@ class _CameraGridPageState extends State<CameraGridPage> {
   }
 
   Future<void> _pickImage(int index, ImageSource source) async {
-    bool granted = await _requestGalleryPermission();
+    bool granted = await _requestAllPermissions();
     if (!granted) {
       ScaffoldMessenger.of(
         context,
@@ -137,9 +187,13 @@ class _CameraGridPageState extends State<CameraGridPage> {
     try {
       final pickedFile = await _picker.pickImage(source: source);
       if (pickedFile != null) {
+        final now = DateTime.now();
+        final timestamp =
+            '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')} '
+            '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
+
         String newPath;
         if (kIsWeb) {
-          // Web ยังใช้ path เดิม (อาจยังไม่เหมาะสมสำหรับ Web จริงๆ)
           newPath = pickedFile.path;
         } else {
           final directory = await getApplicationDocumentsDirectory();
@@ -152,14 +206,17 @@ class _CameraGridPageState extends State<CameraGridPage> {
         final newImage = File(newPath);
         await newImage.writeAsBytes(await pickedFile.readAsBytes());
 
+        print('📂 รูปใหม่ถูกบันทึกไว้ที่: $newPath');
         setState(() {
           _imageFiles[index] = newImage;
         });
 
         await _saveImagePaths(index, newPath);
+      } else {
+        print('📭 ไม่ได้เลือกรูป');
       }
     } catch (e) {
-      print('Error picking image: $e');
+      print('❌ Error picking image: $e');
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text('เกิดข้อผิดพลาดในการเลือกภาพ')));
@@ -188,250 +245,211 @@ class _CameraGridPageState extends State<CameraGridPage> {
       _textControllers.forEach((controller) => controller.clear());
     });
   }
-  Future<List<String>> _uploadImagesToPicUploadAPI(
-    List<File?> imageFiles,
-  ) async {
-    final uri = Uri.parse(
-      'https://ss.cjk-cr.com/CJK/api/appfollowup/picupload_api.php',
-    );
-    var request = http.MultipartRequest('POST', uri);
 
-    // เพิ่ม debug log และแนบไฟล์
-    for (int i = 0; i < imageFiles.length; i++) {
-      if (imageFiles[i] != null) {
-        int fileSize = await imageFiles[i]!.length();
-        print('📤 Uploading img$i: ${imageFiles[i]!.path} ($fileSize bytes)');
-
-        var pic = await http.MultipartFile.fromPath(
-          'img$i',
-          imageFiles[i]!.path,
-        );
-        request.files.add(pic);
-      }
+  void _saveImagesAndReturn() async {
+    if (widget.contractno.trim().isEmpty) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('ข้อมูล contractno ไม่ถูกต้อง')));
+      return;
     }
 
-    try {
-      final streamedResponse = await request.send().timeout(
-        Duration(seconds: 120), // เพิ่ม timeout เป็น 120 วินาที
+    if (_imageFiles.every((file) => file == null)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('กรุณาถ่ายรูปหรือเลือกภาพก่อนบันทึก')),
       );
-      final respStr = await streamedResponse.stream.bytesToString();
-
-      if (streamedResponse.statusCode == 200) {
-        final decoded = json.decode(respStr);
-        if (decoded['status'] == 'success') {
-          print('✅ อัปโหลดเสร็จเรียบร้อย');
-          List<String> uploadedFileNames = [];
-          if (decoded['files'] != null) {
-            for (var f in decoded['files']) {
-              uploadedFileNames.add(f['file_name']);
-            }
-          }
-          return uploadedFileNames;
-        } else {
-          throw Exception(decoded['message'] ?? 'เกิดข้อผิดพลาดจาก API');
-        }
-      } else {
-        throw Exception('HTTP Error ${streamedResponse.statusCode}');
-      }
-    } on SocketException catch (e) {
-      print('📡 SocketException: $e');
-      throw Exception('📡 การเชื่อมต่อล้มเหลว: $e');
-    } on TimeoutException catch (e) {
-      print('⏳ TimeoutException: $e');
-      throw Exception('⏳ การเชื่อมต่อหมดเวลา: $e');
-    } catch (e) {
-      print('❌ Unknown Error: $e');
-      throw Exception('❌ เกิดข้อผิดพลาด: $e');
+      return;
     }
   }
 
+  @override
+  void dispose() {
+    _triggerAutoUpload();
+    super.dispose();
+  }
 
-  void _saveImagesAndReturn() async {
+  void _triggerAutoUpload() {
     if (_imageFiles.any((file) => file != null)) {
-      try {
-        List<String> uploadedFileNames = await _uploadImagesToPicUploadAPI(
-          _imageFiles,
-        );
-
-        Map<String, String> imageData = {};
-        for (int i = 0; i < uploadedFileNames.length; i++) {
-          String key = 'pic${String.fromCharCode(97 + i)}'; // pica, picb, ...
-          imageData[key] = uploadedFileNames[i];
-        }
-
-        imageData['contractno'] = widget.contractno;
-
-        Navigator.pop(context, imageData);
-      } catch (e) {
-        print('❌ Error uploading images: $e');
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('เกิดข้อผิดพลาด: ${e.toString()}')),
-        );
-      }
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('กรุณาถ่ายรูปหรือเลือกภาพจากแกลเลอรี่ก่อนบันทึก'),
-        ),
+      UploadService.autoUploadIfNeeded(
+        contractno: widget.contractno,
+        imageFiles: _imageFiles,
+        context: context,
+        statusNotifier: _uploadStatusNotifier,
       );
     }
   }
 
   @override
+  @override
   Widget build(BuildContext context) {
     final yellow = Colors.amber.shade700;
 
-    return Scaffold(
-      resizeToAvoidBottomInset: true,
-      backgroundColor: Colors.grey.shade100,
-      appBar: AppBar(
-        title: Text(
-          '📷 ภาพถ่าย (${widget.contractno})',
-          style: GoogleFonts.prompt(),
-        ),
-        backgroundColor: yellow,
-        foregroundColor: Colors.white,
-        elevation: 2,
-        actions: [
-          IconButton(
-            icon: Icon(Icons.videocam),
-            tooltip: 'ถ่ายวิดีโอ',
-            onPressed: () async {
-              final result = await Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder:
-                      (context) =>
-                          VideoRecordPage(contractNo: widget.contractno),
-                ),
-              );
-              // ถ้าต้องการรับผลลัพธ์จากหน้าวิดีโอ สามารถเขียนโค้ดจัดการที่นี่
-              if (result != null) {
-                // ทำอะไรบางอย่างกับผลลัพธ์ เช่น แสดง Snackbar, อัปเดต UI เป็นต้น
-              }
-            },
-          ),
+    return WillPopScope(
+      onWillPop: () async {
+        if (_uploadStatusNotifier.value.contains('📸')) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('กำลังอัปโหลด กรุณารอสักครู่')),
+          );
+          return false;
+        }
 
-          IconButton(
-            icon: Icon(Icons.delete_forever),
-            onPressed: () {
-              showDialog(
-                context: context,
-                builder:
-                    (context) => AlertDialog(
-                      title: Text('ลบรูปทั้งหมด'),
-                      content: Text('คุณต้องการลบรูปภาพทั้งหมดใช่หรือไม่?'),
-                      actions: [
-                        TextButton(
-                          onPressed: () => Navigator.pop(context),
-                          child: Text('ยกเลิก'),
-                        ),
-                        TextButton(
-                          onPressed: () {
-                            _clearAllImages();
-                            Navigator.pop(context);
-                          },
-                          child: Text('ลบทั้งหมด'),
-                        ),
-                      ],
-                    ),
-              );
-            },
-            tooltip: 'ลบทั้งหมด',
+        // เรียกฟังก์ชันอัปโหลดก่อนออกจากหน้า (auto upload)
+        if (widget.contractno.trim().isNotEmpty &&
+            _imageFiles.any((f) => f != null)) {
+          await UploadService.autoUploadIfNeeded(
+            contractno: widget.contractno,
+            imageFiles: _imageFiles,
+            context: context,
+            statusNotifier: _uploadStatusNotifier,
+          );
+        }
+
+        return true;
+      },
+      child: Scaffold(
+        resizeToAvoidBottomInset: true,
+        backgroundColor: Colors.grey.shade100,
+        appBar: AppBar(
+          title: Text(
+            '📷 ภาพถ่าย (${widget.contractno})',
+            style: GoogleFonts.prompt(),
           ),
-          IconButton(
-            icon: Icon(Icons.check),
-            onPressed: _saveImagesAndReturn,
-            tooltip: 'บันทึกรูป',
-          ),
-        ],
-      ),
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            children: [
-              const SizedBox(height: 16),
-              Expanded(
-                child: GridView.builder(
-                  shrinkWrap: false,
-                  physics: AlwaysScrollableScrollPhysics(),
-                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 2,
-                    crossAxisSpacing: 10,
-                    mainAxisSpacing: 10,
-                    childAspectRatio: 0.75,
+          backgroundColor: yellow,
+          foregroundColor: Colors.white,
+          elevation: 2,
+          actions: [
+            IconButton(
+              icon: Icon(Icons.videocam),
+              tooltip: 'ถ่ายวิดีโอ',
+              onPressed: () async {
+                final result = await Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder:
+                        (context) =>
+                            VideoRecordPage(contractNo: widget.contractno),
                   ),
-                  itemCount: 6,
-                  itemBuilder: (context, index) {
-                    return GestureDetector(
-                      onTap: () => _pickImage(index, ImageSource.camera),
-                      onLongPress: () {
-                        if (_imageFiles[index] != null) {
-                          showDialog(
-                            context: context,
-                            builder:
-                                (context) => AlertDialog(
-                                  title: Text('ลบรูปภาพ'),
-                                  content: Text(
-                                    'คุณต้องการลบรูปภาพนี้หรือไม่?',
+                );
+                if (result != null) {
+                  // ทำอะไรบางอย่างกับวิดีโอ
+                }
+              },
+            ),
+            IconButton(
+              icon: Icon(Icons.delete_forever),
+              onPressed: () {
+                showDialog(
+                  context: context,
+                  builder:
+                      (context) => AlertDialog(
+                        title: Text('ลบรูปทั้งหมด'),
+                        content: Text('คุณต้องการลบรูปภาพทั้งหมดใช่หรือไม่?'),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(context),
+                            child: Text('ยกเลิก'),
+                          ),
+                          TextButton(
+                            onPressed: () {
+                              _clearAllImages();
+                              Navigator.pop(context);
+                            },
+                            child: Text('ลบทั้งหมด'),
+                          ),
+                        ],
+                      ),
+                );
+              },
+              tooltip: 'ลบทั้งหมด',
+            ),
+          ],
+        ),
+        body: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              children: [
+                const SizedBox(height: 16),
+                Expanded(
+                  child: GridView.builder(
+                    shrinkWrap: false,
+                    physics: AlwaysScrollableScrollPhysics(),
+                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 2,
+                      crossAxisSpacing: 10,
+                      mainAxisSpacing: 10,
+                      childAspectRatio: 0.75,
+                    ),
+                    itemCount: 6,
+                    itemBuilder: (context, index) {
+                      return GestureDetector(
+                        onTap: () => _pickImage(index, ImageSource.camera),
+                        onLongPress: () {
+                          if (_imageFiles[index] != null) {
+                            showDialog(
+                              context: context,
+                              builder:
+                                  (context) => AlertDialog(
+                                    title: Text('ลบรูปภาพ'),
+                                    content: Text(
+                                      'คุณต้องการลบรูปภาพนี้หรือไม่?',
+                                    ),
+                                    actions: [
+                                      TextButton(
+                                        onPressed: () => Navigator.pop(context),
+                                        child: Text('ยกเลิก'),
+                                      ),
+                                      TextButton(
+                                        onPressed: () {
+                                          _removeImage(index);
+                                          Navigator.pop(context);
+                                        },
+                                        child: Text('ลบ'),
+                                      ),
+                                    ],
                                   ),
-                                  actions: [
-                                    TextButton(
-                                      onPressed: () => Navigator.pop(context),
-                                      child: Text('ยกเลิก'),
-                                    ),
-                                    TextButton(
-                                      onPressed: () {
-                                        _removeImage(index);
-                                        Navigator.pop(context);
-                                      },
-                                      child: Text('ลบ'),
-                                    ),
-                                  ],
+                            );
+                          }
+                        },
+                        child: Card(
+                          elevation: 3,
+                          child: Padding(
+                            padding: const EdgeInsets.all(8.0),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Expanded(
+                                  child:
+                                      _imageFiles[index] != null
+                                          ? Image.file(
+                                            _imageFiles[index]!,
+                                            key: ValueKey(
+                                              DateTime.now()
+                                                  .millisecondsSinceEpoch,
+                                            ),
+                                            fit: BoxFit.cover,
+                                            width: double.infinity,
+                                          )
+                                          : Icon(Icons.photo_camera, size: 50),
                                 ),
-                          );
-                        }
-                      },
-                      child: Card(
-                        elevation: 3,
-                        child: Padding(
-                          padding: const EdgeInsets.all(8.0),
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Expanded(
-                                child:
-                                    _imageFiles[index] != null
-                                        ? Image.file(
-                                          _imageFiles[index]!,
-                                          fit: BoxFit.cover,
-                                          width: double.infinity,
-                                        )
-                                        : Container(
-                                          child: Icon(
-                                            Icons.photo_camera,
-                                            size: 50,
-                                          ),
-                                        ),
-                              ),
-                              SizedBox(height: 8),
-                              Text(
-                                '${widget.contractno}_${String.fromCharCode(65 + index)}',
-                                style: TextStyle(
-                                  color: Colors.grey.shade600,
-                                  fontWeight: FontWeight.bold,
+                                SizedBox(height: 8),
+                                Text(
+                                  '${widget.contractno}_${String.fromCharCode(65 + index)}',
+                                  style: TextStyle(
+                                    color: Colors.grey.shade600,
+                                    fontWeight: FontWeight.bold,
+                                  ),
                                 ),
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
                         ),
-                      ),
-                    );
-                  },
+                      );
+                    },
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),

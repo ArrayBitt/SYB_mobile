@@ -50,10 +50,13 @@ class _VideoPreviewUploadScreenState extends State<VideoPreviewUploadScreen> {
     });
 
     try {
-      var request = http.MultipartRequest(
-        'POST',
-        Uri.parse('https://ss.cjk-cr.com/CJK/api/appfollowup/upload_video.php'),
-      );
+      var request = http.MultipartRequest( 'POST',Uri.parse('https://ss.cjk-cr.com/CJK/api/appfollowup/upload_video.php'), );
+
+      // var request = http.MultipartRequest(
+      //   'POST',
+      //   Uri.parse('http://192.168.1.15/CJKTRAINING/api/appfollowup/upload_video.php'),
+      // );
+
 
       request.files.add(
         await http.MultipartFile.fromPath('video_file', widget.videoPath),

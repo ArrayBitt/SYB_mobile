@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:cjk/states/video_compress_helper.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
@@ -19,11 +20,20 @@ class _VideoRecordPageState extends State<VideoRecordPage> {
   List<String?> videoPaths = List.generate(6, (_) => null);
   final List<String> contractLabels = ['A', 'B', 'C', 'D', 'E', 'F'];
   bool isUploading = false;
+  bool _isCompressing = false; // สถานะบีบอัด
+
+  final VideoCompressHelper _videoCompressHelper = VideoCompressHelper();
 
   @override
   void initState() {
     super.initState();
     _loadVideoPaths();
+  }
+
+  @override
+  void dispose() {
+    _videoCompressHelper.dispose();
+    super.dispose();
   }
 
   Future<void> _loadVideoPaths() async {
@@ -70,7 +80,19 @@ class _VideoRecordPageState extends State<VideoRecordPage> {
 
   Future<bool> _uploadVideo(String filePath, int index) async {
     try {
-      final file = File(filePath);
+      setState(() {
+        _isCompressing = true;
+      });
+
+      // บีบอัดวิดีโอก่อนอัปโหลด
+      final compressedPath = await _videoCompressHelper.compressVideo(filePath);
+      setState(() {
+        _isCompressing = false;
+      });
+
+      final uploadPath = compressedPath ?? filePath; // ใช้ไฟล์บีบอัด ถ้าได้
+
+      final file = File(uploadPath);
       final fileSize = await file.length();
       const maxSizeInBytes = 50 * 1024 * 1024;
 
@@ -91,14 +113,18 @@ class _VideoRecordPageState extends State<VideoRecordPage> {
         Uri.parse('https://ss.cjk-cr.com/CJK/api/appfollowup/upload_video.php'),
       );
 
-      // เพิ่ม debug แสดงข้อมูลไฟล์และ fields ก่อนส่ง
+      // final request = http.MultipartRequest(
+      //   'POST',
+      //   Uri.parse('http://192.168.1.15/CJKTRAINING/api/appfollowup/upload_video.php'),
+      // );
+
       debugPrint('Uploading video index: $index');
-      debugPrint('File path: $filePath');
+      debugPrint('File path: $uploadPath');
       debugPrint('File size (bytes): $fileSize');
       debugPrint('Fields: contract_no=${widget.contractNo}, index=$index');
 
       request.files.add(
-        await http.MultipartFile.fromPath('video_file', filePath),
+        await http.MultipartFile.fromPath('video_file', uploadPath),
       );
       request.fields['contract_no'] = widget.contractNo;
       request.fields['index'] = index.toString();
@@ -106,14 +132,17 @@ class _VideoRecordPageState extends State<VideoRecordPage> {
       final streamedResponse = await request.send().timeout(
         const Duration(seconds: 60),
       );
+      final responseBody = await streamedResponse.stream.bytesToString();
 
       if (streamedResponse.statusCode == 200) {
         debugPrint('Upload video $index success');
+        debugPrint('Server response: $responseBody');
         return true;
       } else {
         debugPrint(
           'Upload video $index failed with status: ${streamedResponse.statusCode}',
         );
+        debugPrint('Server response: $responseBody');
         return false;
       }
     } on TimeoutException catch (_) {
@@ -123,6 +152,9 @@ class _VideoRecordPageState extends State<VideoRecordPage> {
       );
       return false;
     } catch (e) {
+      setState(() {
+        _isCompressing = false;
+      });
       debugPrint('Upload video $index error: $e');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -306,6 +338,13 @@ class _VideoRecordPageState extends State<VideoRecordPage> {
                   },
                 ),
               ),
+              if (_isCompressing) ...[
+                const SizedBox(height: 20),
+                const CircularProgressIndicator(),
+                const SizedBox(height: 10),
+                const Text('กำลังบีบอัดวิดีโอ... กรุณารอสักครู่'),
+                const SizedBox(height: 20),
+              ],
               if (isUploading) ...[
                 const CircularProgressIndicator(),
                 const SizedBox(height: 12),
@@ -315,7 +354,9 @@ class _VideoRecordPageState extends State<VideoRecordPage> {
                 const SizedBox(height: 12),
                 ElevatedButton.icon(
                   onPressed:
-                      videoPaths.any((e) => e != null) && !isUploading
+                      videoPaths.any((e) => e != null) &&
+                              !isUploading &&
+                              !_isCompressing
                           ? _uploadAllVideos
                           : null,
                   icon: const Icon(Icons.cloud_upload),
