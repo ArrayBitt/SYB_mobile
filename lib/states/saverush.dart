@@ -45,11 +45,13 @@ class SaveRushPage extends StatefulWidget {
 class _SaveRushPageState extends State<SaveRushPage> {
   final _formKey = GlobalKey<FormState>();
 
-    // ตัวแปรนี้ใช้เก็บสถานะว่าควรส่ง '0.00' แทนค่าจริงหรือไม่
+  // ตัวแปรนี้ใช้เก็บสถานะว่าควรส่ง '0.00' แทนค่าจริงหรือไม่
   bool _shouldForceZeroOnNextSaves = false;
 
-  // ตัวแปรล็อก TextField ค่าติดตาม
   bool _disableFollowFee = false;
+  bool _forceZeroFollowAmount = false;
+  late bool _isFollowFeeEditable;
+
   String? _selectedPersonType;
   String fperson = ''; // เก็บค่าประเภทบุคคลที่เลือกหรือกรอกเอง
   bool _isOtherPerson = false;
@@ -119,31 +121,28 @@ class _SaveRushPageState extends State<SaveRushPage> {
   List<Map<String, String>> _followTypes = [];
   String? _selectedFollowType;
 
-  // ✅ เพิ่มตรงนี้ เพื่อเก็บชื่อไฟล์รูปจากกล้อง
+
   List<String?> imageFilenames = List.filled(6, null);
 
-@override
+  @override
   void initState() {
     super.initState();
     _fetchFollowTypes();
 
-    final hpOverdueAmtNum = double.tryParse(widget.hp_overdueamt) ?? 0.0;
-    final follow400Num = double.tryParse(widget.follow400) ?? 0.0;
+    final overdueAmt = double.tryParse(widget.hp_overdueamt) ?? 0.0;
+    final follow400 = double.tryParse(widget.follow400) ?? 0.0;
 
-    if (hpOverdueAmtNum <= 1000) {
-      _disableFollowFee = true;
+    if (overdueAmt <= 1000) {
+      _isFollowFeeEditable = false;
       _followFeeController.text = '0.00';
-      _shouldForceZeroOnNextSaves = false;
-    } else if (hpOverdueAmtNum > 1000 && follow400Num == 0.0) {
-      _disableFollowFee = true;
+    } else if (overdueAmt > 1000 && follow400 == 0.00) {
+      _isFollowFeeEditable = false;
       _followFeeController.text = '400.00';
-      _shouldForceZeroOnNextSaves = true;
     } else {
-      _disableFollowFee = false;
-      _shouldForceZeroOnNextSaves = false;
+      _isFollowFeeEditable = true; // ปล่อยให้กรอกได้
+      _followFeeController.text = follow400.toStringAsFixed(2);
     }
   }
-
 
   String formatThaiDate(String input) {
     try {
@@ -162,7 +161,8 @@ class _SaveRushPageState extends State<SaveRushPage> {
   }
 
   Future<void> _fetchFollowTypes() async {
-     const url ='https://ss.cjk-cr.com/CJK/api/appfollowup/get_followtype.php?followtype=M-1';
+    const url =
+        'https://ss.cjk-cr.com/CJK/api/appfollowup/get_followtype.php?followtype=M-1';
 
     // const url =
     //     'http://192.168.1.15/CJKTRAINING/api/appfollowup/get_followtype.php?followtype=M-1';
@@ -272,6 +272,19 @@ class _SaveRushPageState extends State<SaveRushPage> {
             ? _otherPropertyController.text
             : (_selectedproperType ?? '');
 
+    String getFinalFollowAmountToSend() {
+      final overdueAmt = double.tryParse(widget.hp_overdueamt) ?? 0.0;
+      final follow400 = double.tryParse(widget.follow400) ?? 0.0;
+
+      if (overdueAmt <= 1000) {
+        return '0.00';
+      } else if (overdueAmt > 1000 && follow400 == 400.00) {
+        return '400.00'; // ครั้งแรกเท่านั้น
+      } else {
+        return '0.00'; // ครั้งถัดไป
+      }
+    }
+
     try {
       Position position = await Geolocator.getCurrentPosition(
         desiredAccuracy: LocationAccuracy.high,
@@ -282,10 +295,8 @@ class _SaveRushPageState extends State<SaveRushPage> {
       print('⚠️ ไม่สามารถดึงตำแหน่งได้: $e');
     }
 
-    final String url1 = 'https://ss.cjk-cr.com/CJK/api/appfollowup/up_saverush.php?contractno=${widget.contractNo}';
-
-    // final String url1 =
-    //     'http://192.168.1.15/CJKTRAINING/api/appfollowup/up_saverush.php?contractno=${widget.contractNo}';
+    final String url1 =
+        'https://ss.cjk-cr.com/CJK/api/appfollowup/up_saverush.php?contractno=${widget.contractNo}';
 
     final data1 = {
       'contractno': widget.contractNo,
@@ -295,7 +306,7 @@ class _SaveRushPageState extends State<SaveRushPage> {
       'entrydate': entryDate,
       'timeupdate': timeUpdate,
       'meetingamount': _amountController.text,
-      'followamount': _followFeeController.text,
+      'followamount': getFinalFollowAmountToSend(), // ✅ ใช้ค่าที่คำนวณแล้ว
       'mileages': _mileageController.text,
       'maplocations': locationController.text,
       'checkrush': _isCompleted.toString(),
@@ -340,11 +351,8 @@ class _SaveRushPageState extends State<SaveRushPage> {
       }
 
       // ✅ API ที่ 2
-      final String url2 ='https://ss.cjk-cr.com/CJK/api/appfollowup/update_checkrush.php?contractno=${widget.contractNo}';
-
-      // final String url2 =
-      //     'http://192.168.1.15/CJKTRAINING/api/appfollowup/update_checkrush.php?contractno=${widget.contractNo}';
-
+      final String url2 =
+          'https://ss.cjk-cr.com/CJK/api/appfollowup/update_checkrush.php?contractno=${widget.contractNo}';
       final data2 = {
         'contractno': widget.contractNo,
         'tranferdate': widget.tranferdate,
@@ -379,18 +387,16 @@ class _SaveRushPageState extends State<SaveRushPage> {
       }
 
       // ✅ API ที่ 3
-      final String url3 ='https://ss.cjk-cr.com/CJK/api/appfollowup/uprush_test.php?contractno=${widget.contractNo}';
-
-      // final String url3 =
-      //     'http://192.168.1.15/CJKTRAINING/api/appfollowup/uprush_test.php?contractno=${widget.contractNo}';
-
+      final String url3 =
+          'https://ss.cjk-cr.com/CJK/api/appfollowup/uprush_test.php?contractno=${widget.contractNo}';
       final data3 = {
         'contractno': widget.contractNo,
         'entrydate': entryDate,
         'followtype': _selectedFollowType ?? '',
         'username': widget.username,
         'follower': widget.username,
-        'followamount': _followFeeController.text,
+        'followamount':
+            getFinalFollowAmountToSend(), // ✅ ตรงนี้ก็ใช้ค่าที่คำนวณแล้ว
         'timeupdate': timeUpdate,
         'seqno': widget.seqno.toString(),
       };
@@ -708,6 +714,7 @@ class _SaveRushPageState extends State<SaveRushPage> {
     TextInputType keyboardType = TextInputType.text,
     FormFieldValidator<String>? validator,
     bool enabled = true, // เพิ่มพารามิเตอร์นี้ (ดีฟอลต์เป็น true)
+    bool readOnly = false, // ✅ เพิ่มตัวนี้
   }) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
@@ -717,6 +724,7 @@ class _SaveRushPageState extends State<SaveRushPage> {
         keyboardType: keyboardType,
         style: GoogleFonts.prompt(),
         enabled: enabled, // เพิ่มตรงนี้สำหรับเปิด/ปิดการกรอก
+        readOnly: readOnly, // ✅ เพิ่มตรงนี้
         decoration: InputDecoration(
           prefixIcon: Icon(icon, color: Colors.amber.shade800),
           labelText: label,
@@ -1470,13 +1478,15 @@ class _SaveRushPageState extends State<SaveRushPage> {
                       return null;
                     },
                   ),
-                 _buildTextField(
+                  _buildTextField(
                     label: 'ค่าติดตาม',
                     icon: Icons.attach_money,
                     controller: _followFeeController,
                     keyboardType: TextInputType.number,
-                    enabled: !_disableFollowFee, // <== เพิ่มบรรทัดนี้
+                    enabled: _isFollowFeeEditable, // สีเทาหรือไม่
+                    readOnly: !_isFollowFeeEditable, // ปิดให้พิมพ์
                     validator: (value) {
+                      if (!_isFollowFeeEditable) return null;
                       if (value == null || value.isEmpty) {
                         return 'กรุณากรอกค่าติดตาม';
                       }
