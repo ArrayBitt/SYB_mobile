@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+
 import 'package:cjk/states/upload_service.dart';
 import 'package:cjk/states/videoRecordPage.dart';
 import 'package:flutter/material.dart';
@@ -25,14 +26,18 @@ class CameraGridPage extends StatefulWidget {
 class _CameraGridPageState extends State<CameraGridPage> {
   final ImagePicker _picker = ImagePicker();
   List<File?> _imageFiles = List.generate(6, (index) => null);
-  List<TextEditingController> _textControllers = List.generate(
-    6,
-    (index) => TextEditingController(),
-  );
+  List<TextEditingController> _textControllers = List.generate( 6,(index) => TextEditingController(),);
+
+  List<bool> _uploadedFlags = List.filled(6, false);
+
+  bool _hasCheckedUploadOnce = false;
 
   final ValueNotifier<String> _uploadStatusNotifier = ValueNotifier<String>(
     '',
   ); // popup status controller
+
+  String _getUploadFlagsPrefKey() => 'uploadedFlags_${widget.contractno}';
+
 
   String _getPrefKey() => 'imagePaths_${widget.contractno}';
 
@@ -40,8 +45,26 @@ class _CameraGridPageState extends State<CameraGridPage> {
   void initState() {
     super.initState();
     _loadSavedImages();
+    _loadUploadedFlags();
+ 
+
+     // ✅ เรียก popup ตรวจสอบเฉพาะครั้งแรก
+   
   }
 
+
+
+
+
+  Future<void> _loadUploadedFlags() async {
+    final prefs = await SharedPreferences.getInstance();
+    List<String> flags =
+        prefs.getStringList(_getUploadFlagsPrefKey()) ??
+        List.filled(6, 'false');
+    setState(() {
+      _uploadedFlags = flags.map((e) => e == 'true').toList();
+    });
+  }
   Future<void> _saveImagePaths(int index, String imagePath) async {
     final prefs = await SharedPreferences.getInstance();
     List<String> savedPaths =
@@ -246,6 +269,14 @@ class _CameraGridPageState extends State<CameraGridPage> {
     });
   }
 
+  Future<void> _saveUploadedFlags() async {
+    final prefs = await SharedPreferences.getInstance();
+    List<String> flags =
+        _uploadedFlags.map((e) => e ? 'true' : 'false').toList();
+    await prefs.setStringList(_getUploadFlagsPrefKey(), flags);
+  }
+
+
   void _saveImagesAndReturn() async {
     if (widget.contractno.trim().isEmpty) {
       ScaffoldMessenger.of(
@@ -262,9 +293,11 @@ class _CameraGridPageState extends State<CameraGridPage> {
     }
   }
 
+  
+
   @override
   void dispose() {
-    _triggerAutoUpload();
+    //_triggerAutoUpload();
     super.dispose();
   }
 
@@ -285,7 +318,7 @@ class _CameraGridPageState extends State<CameraGridPage> {
     final yellow = Colors.amber.shade700;
 
     return WillPopScope(
-      onWillPop: () async {
+    onWillPop: () async {
         if (_uploadStatusNotifier.value.contains('📸')) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text('กำลังอัปโหลด กรุณารอสักครู่')),
@@ -293,19 +326,116 @@ class _CameraGridPageState extends State<CameraGridPage> {
           return false;
         }
 
-        // เรียกฟังก์ชันอัปโหลดก่อนออกจากหน้า (auto upload)
-        if (widget.contractno.trim().isNotEmpty &&
-            _imageFiles.any((f) => f != null)) {
-          await UploadService.autoUploadIfNeeded(
-            contractno: widget.contractno,
-            imageFiles: _imageFiles,
+        bool hasPendingUpload = false;
+        for (int i = 0; i < _imageFiles.length; i++) {
+          if (_imageFiles[i] != null && !_uploadedFlags[i]) {
+            hasPendingUpload = true;
+            break;
+          }
+        }
+
+        if (hasPendingUpload) {
+          final shouldUpload = await showDialog<bool>(
             context: context,
-            statusNotifier: _uploadStatusNotifier,
+            barrierDismissible: false, // กดนอก dialog ไม่ปิด
+            builder:
+                (context) => Dialog(
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  elevation: 10,
+                  child: Padding(
+                    padding: const EdgeInsets.all(24.0),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.cloud_upload_rounded,
+                          size: 64,
+                          color: Colors.amber.shade700,
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          'ยังไม่ได้อัปโหลดภาพใหม่',
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.grey.shade900,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'คุณต้องการอัปโหลดรูปภาพตอนนี้หรือไม่?',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontSize: 16,
+                            color: Colors.grey.shade700,
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          children: [
+                            TextButton(
+                              style: TextButton.styleFrom(
+                                foregroundColor: Colors.grey.shade600,
+                                textStyle: const TextStyle(fontSize: 16),
+                              ),
+                              onPressed: () => Navigator.pop(context, false),
+                              child: const Text('ไม่'),
+                            ),
+                            const SizedBox(width: 12),
+                            ElevatedButton(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.amber.shade700,
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 24,
+                                  vertical: 12,
+                                ),
+                                textStyle: const TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                              ),
+                              onPressed: () => Navigator.pop(context, true),
+                              child: const Text('ใช่'),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
           );
+
+          if (shouldUpload == true) {
+            await UploadService.autoUploadIfNeeded(
+              contractno: widget.contractno,
+              imageFiles: _imageFiles,
+              context: context,
+              statusNotifier: _uploadStatusNotifier,
+              onUploadSuccess: (index) async {
+                setState(() {
+                  _uploadedFlags[index] = true;
+                });
+                await _saveUploadedFlags();
+              },
+            );
+
+            await UploadService.insertCheckStatusPic(
+              contractno: widget.contractno,
+              imageFiles: _imageFiles,
+            );
+          }
         }
 
         return true;
       },
+
+
       child: Scaffold(
         resizeToAvoidBottomInset: true,
         backgroundColor: Colors.grey.shade100,

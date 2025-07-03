@@ -1,5 +1,6 @@
 // 📦 upload_service.dart
 import 'dart:io';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
@@ -20,7 +21,7 @@ class UploadService {
       '${path.basenameWithoutExtension(file.path)}_compressed.jpg',
     );
 
-   final compressedFile = await FlutterImageCompress.compressAndGetFile(
+    final compressedFile = await FlutterImageCompress.compressAndGetFile(
       file.path,
       targetPath,
       quality: 70, // ลดจาก 80 เป็น 70
@@ -28,7 +29,6 @@ class UploadService {
       minHeight: 800,
       format: CompressFormat.jpeg,
     );
-
 
     return (compressedFile as File?) ?? file;
   }
@@ -38,6 +38,7 @@ class UploadService {
     required List<File?> imageFiles,
     required BuildContext context,
     required ValueNotifier<String> statusNotifier,
+    void Function(int index)? onUploadSuccess, // เพิ่มตรงนี้
   }) async {
     if (contractno.trim().isEmpty || imageFiles.every((f) => f == null)) return;
 
@@ -51,8 +52,9 @@ class UploadService {
 
       final compressed = await compressImageIfNeeded(file);
 
-      final uri = Uri.parse( 'https://ss.cjk-cr.com/CJK/api/appfollowup/picupload_api.php',);
-      //final uri = Uri.parse('http://192.168.1.15/CJKTRAINING/api/appfollowup/picupload_api.php', );
+      final uri = Uri.parse(
+        'https://ss.cjk-cr.com/CJK/api/appfollowup/picupload_api.php',
+      );
 
       final fileName = '${contractno}_${String.fromCharCode(65 + i)}.jpg';
       final fieldName = 'pic${String.fromCharCode(65 + i)}';
@@ -74,6 +76,10 @@ class UploadService {
         );
         final respStr = await response.stream.bytesToString();
         debugPrint('✅ [$fieldName] ${response.statusCode}: $respStr');
+
+        if (response.statusCode == 200 && onUploadSuccess != null) {
+          onUploadSuccess(i); // เรียก callback ถ้า upload สำเร็จ
+        }
       } catch (e) {
         debugPrint('❌ Upload failed for $fieldName: $e');
       }
@@ -82,6 +88,37 @@ class UploadService {
     statusNotifier.value = '✅ Upload complete';
     await Future.delayed(const Duration(seconds: 1));
     Navigator.pop(context);
+  }
+
+  static Future<void> insertCheckStatusPic({
+    required String contractno,
+    required List<File?> imageFiles,
+  }) async {
+    final url =
+        'https://ss.cjk-cr.com/CJK/api/appfollowup/checkstatuspic_api.php';
+
+    final payload = {
+      'contractno': contractno,
+      'pic_a': imageFiles[0] != null ? 'Y' : 'N',
+      'pic_b': imageFiles[1] != null ? 'Y' : 'N',
+      'pic_c': imageFiles[2] != null ? 'Y' : 'N',
+      'pic_d': imageFiles[3] != null ? 'Y' : 'N',
+      'pic_e': imageFiles[4] != null ? 'Y' : 'N',
+      'pic_f': imageFiles[5] != null ? 'Y' : 'N',
+    };
+
+    try {
+      final response = await http.post(
+        Uri.parse(url),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode(payload),
+      );
+
+      final result = jsonDecode(response.body);
+      debugPrint('📌 insertCheckStatusPic: $result');
+    } catch (e) {
+      debugPrint('❌ insertCheckStatusPic error: $e');
+    }
   }
 
   static void _showModernUploadingDialog(
