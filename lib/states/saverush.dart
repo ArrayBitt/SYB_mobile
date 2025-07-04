@@ -51,6 +51,7 @@ class _SaveRushPageState extends State<SaveRushPage> {
   bool _disableFollowFee = false;
   bool _forceZeroFollowAmount = false;
   late bool _isFollowFeeEditable;
+  bool _isOtherDatacarDetail = false;
 
   String? _selectedPersonType;
   String fperson = ''; // เก็บค่าประเภทบุคคลที่เลือกหรือกรอกเอง
@@ -84,6 +85,13 @@ class _SaveRushPageState extends State<SaveRushPage> {
   final TextEditingController _mileageController = TextEditingController();
   final TextEditingController _locationController = TextEditingController();
   final TextEditingController locationController = TextEditingController();
+
+ 
+
+  String? _selectedDatacarDetail;
+
+  final TextEditingController _otherDatacarDetailController =
+      TextEditingController();
 
   // ฟังก์ชันแปลงวันที่จาก ค.ศ. เป็น พ.ศ.
   String convertToThaiDate(DateTime date) {
@@ -121,10 +129,9 @@ class _SaveRushPageState extends State<SaveRushPage> {
   List<Map<String, String>> _followTypes = [];
   String? _selectedFollowType;
 
-
   List<String?> imageFilenames = List.filled(6, null);
 
-  @override
+@override
   void initState() {
     super.initState();
     _fetchFollowTypes();
@@ -135,12 +142,15 @@ class _SaveRushPageState extends State<SaveRushPage> {
     if (overdueAmt <= 1000) {
       _isFollowFeeEditable = false;
       _followFeeController.text = '0.00';
-    } else if (overdueAmt > 1000 && follow400 == 0.00) {
+    } else if (follow400 == 0.00) {
       _isFollowFeeEditable = false;
       _followFeeController.text = '400.00';
-    } else {
-      _isFollowFeeEditable = true; // ปล่อยให้กรอกได้
+    } else if (follow400 < 400.00) {
+      _isFollowFeeEditable = true;
       _followFeeController.text = follow400.toStringAsFixed(2);
+    } else {
+      _isFollowFeeEditable = false;
+      _followFeeController.text = '0.00';
     }
   }
 
@@ -272,16 +282,16 @@ class _SaveRushPageState extends State<SaveRushPage> {
             ? _otherPropertyController.text
             : (_selectedproperType ?? '');
 
-    String getFinalFollowAmountToSend() {
+   String getFinalFollowAmountToSend() {
       final overdueAmt = double.tryParse(widget.hp_overdueamt) ?? 0.0;
       final follow400 = double.tryParse(widget.follow400) ?? 0.0;
 
       if (overdueAmt <= 1000) {
-        return '0.00';
-      } else if (overdueAmt > 1000 && follow400 == 400.00) {
-        return '400.00'; // ครั้งแรกเท่านั้น
+        return '0.00'; // ไม่ถึงเกณฑ์ ไม่คิดค่าติดตาม
+      } else if (overdueAmt > 1000 && follow400 == 0.00) {
+        return '400.00'; // ครั้งแรกเท่านั้น ที่ยังไม่เคยถูกคิดค่าติดตาม
       } else {
-        return '0.00'; // ครั้งถัดไป
+        return '0.00'; // ครั้งถัดไป หรือเคยมี follow400 แล้ว
       }
     }
 
@@ -776,21 +786,30 @@ class _SaveRushPageState extends State<SaveRushPage> {
       'อื่นๆ',
     ];
 
-    List<String> datacarTypes = [
-      'พบรถ',
-      'ไม่พบรถ',
-      'รถใช้นอกพื้นที่',
-      'รถจำนำ/ขาย',
-      'รถพังเสียหายไม่สามารถรับคืนได้',
-      'อื่นๆ',
-    ];
-
     List<String> fareaTypes = [
       'นัดชำระ',
       'ติดตามต่อ',
       'ส่งต่อสายงานอื่น',
       'รถจำนำ/ขาย',
       'ส่งเรื่องฝ่ายกฎหมาย',
+      'อื่นๆ',
+    ];
+
+    List<String> datacarTypes = ['พบรถ', 'ไม่พบรถ'];
+
+    String? _selectedDatacarDetail; // สำหรับ dropdown ย่อย
+    List<String> foundCarDetails = [
+      'สภาพดี',
+      'รถพังเสียหาย',
+      'รถดัดแปลง',
+      'จอดทิ้งไว้ไม่ได้ใช้งาน',
+      'อื่นๆ',
+    ];
+    List<String> notFoundCarDetails = [
+      'รถใช้งานนอกสถานที่',
+      'รถใช้ในพื้นที่ แต่ไม่พบ',
+      'จำนำหรือขาย',
+      'ไม่ให้ข้อมูล',
       'อื่นๆ',
     ];
 
@@ -1119,9 +1138,9 @@ class _SaveRushPageState extends State<SaveRushPage> {
                   ],
                   SizedBox(height: 12),
 
-                  //datacar
+                  // ===================== ข้อมูลรถ =====================
                   DropdownButtonFormField<String>(
-                    value: _isOtherAdress ? 'อื่นๆ' : _selectedfdatacarType,
+                    value: _selectedfdatacarType,
                     items:
                         datacarTypes.map((type) {
                           return DropdownMenuItem(
@@ -1132,17 +1151,12 @@ class _SaveRushPageState extends State<SaveRushPage> {
                     onChanged: (value) {
                       setState(() {
                         _selectedfdatacarType = value;
-                        if (value == 'อื่นๆ') {
-                          _isOtherDatacar = true;
-                          _otherDatacarController.text = '';
-                          fdatacar = ''; // เคลียร์ค่า fdatacar
-                        } else {
-                          _isOtherDatacar = false;
-                          fdatacar = value ?? ''; // ← ตรงนี้ควรอัปเดต fdatacar
-                        }
+                        _selectedDatacarDetail = null;
+                        _isOtherDatacarDetail = false;
+                        _otherDatacarDetailController.clear();
+                        fdatacar = '';
                       });
                     },
-
                     decoration: InputDecoration(
                       labelText: 'ข้อมูลรถ',
                       labelStyle: GoogleFonts.prompt(
@@ -1167,45 +1181,72 @@ class _SaveRushPageState extends State<SaveRushPage> {
                   ),
                   SizedBox(height: 12),
 
-                  if (_isOtherDatacar) ...[
-                    SizedBox(height: 12),
-                    TextFormField(
-                      controller: _otherDatacarController,
+                  if (_selectedfdatacarType == 'พบรถ' ||
+                      _selectedfdatacarType == 'ไม่พบรถ') ...[
+                    DropdownButtonFormField<String>(
+                      value: _selectedDatacarDetail,
+                      items:
+                          (_selectedfdatacarType == 'พบรถ'
+                                  ? foundCarDetails
+                                  : notFoundCarDetails)
+                              .map(
+                                (detail) => DropdownMenuItem(
+                                  value: detail,
+                                  child: Text(detail),
+                                ),
+                              )
+                              .toList(),
+                      onChanged: (value) {
+                        setState(() {
+                          _selectedDatacarDetail = value;
+                          _isOtherDatacarDetail = value == 'อื่นๆ';
+                          if (_isOtherDatacarDetail) {
+                            _otherDatacarDetailController.clear();
+                            fdatacar = '${_selectedfdatacarType!} - ';
+                          } else {
+                            fdatacar = '${_selectedfdatacarType!} - $value';
+                          }
+                        });
+                      },
                       decoration: InputDecoration(
-                        labelText: 'กรุณาระบุข้อมูลรถ',
+                        labelText:
+                            _selectedfdatacarType == 'พบรถ'
+                                ? 'รายละเอียดรถที่พบ'
+                                : 'สาเหตุที่ไม่พบรถ',
+                        prefixIcon: Icon(Icons.info_outline, color: yellow),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                      ),
+                    ),
+                    SizedBox(height: 12),
+                  ],
+
+                  if (_isOtherDatacarDetail) ...[
+                    TextFormField(
+                      controller: _otherDatacarDetailController,
+                      decoration: InputDecoration(
+                        labelText: 'กรุณาระบุรายละเอียด',
                         prefixIcon: Icon(Icons.edit, color: yellow),
-                        filled: true,
-                        fillColor: Colors.white,
-                        contentPadding: EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 12,
-                        ),
-                        enabledBorder: OutlineInputBorder(
+                        border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(14),
-                          borderSide: BorderSide(color: grey),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(14),
-                          borderSide: BorderSide(color: yellow, width: 1.5),
                         ),
                       ),
                       onChanged: (val) {
                         setState(() {
-                          fdatacar = val;
-                          print('กรอกอื่นๆ  ข้อมูลรถ: $fdatacar');
+                          fdatacar = '${_selectedfdatacarType!} - $val';
                         });
                       },
-
                       validator: (value) {
-                        if (_isOtherDatacar &&
+                        if (_isOtherDatacarDetail &&
                             (value == null || value.isEmpty)) {
-                          return 'กรุณาระบุประข้อมูลรถ';
+                          return 'กรุณาระบุรายละเอียดเพิ่มเติม';
                         }
                         return null;
                       },
                     ),
+                    SizedBox(height: 12),
                   ],
-                  SizedBox(height: 12),
 
                   //area
                   DropdownButtonFormField<String>(
@@ -1498,7 +1539,6 @@ class _SaveRushPageState extends State<SaveRushPage> {
                       return null;
                     },
                   ),
-
 
                   _buildTextField(
                     label: 'ระยะไมล์',

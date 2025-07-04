@@ -68,19 +68,33 @@ class ContractListItem extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // หัวข้อ
-            Text(
-              'เลขที่สัญญา: ${contract['contractno'] ?? ''}',
-              style: GoogleFonts.prompt(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: Colors.teal[700],
+           RichText(
+              text: TextSpan(
+                style: GoogleFonts.prompt(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.teal[700], // สีของ "เลขที่สัญญา:"
+                ),
+                children: [
+                  TextSpan(
+                    text: 'เลขที่สัญญา: ${contract['contractno'] ?? ''}',
+                  ),
+                  if (contract['restatus'] == 'Y')
+                    TextSpan(
+                      text: ' (❗️หลุดนัด)',
+                      style: TextStyle(
+                        color: Colors.red,
+                      ), // สีแดงสำหรับ "หลุดนัด"
+                    ),
+                ],
               ),
             ),
-            SizedBox(height: 12),
+
+            SizedBox(height: 5),
             // กล่องข้อมูล
             Wrap(
-              spacing: 12,
-              runSpacing: 10,
+              spacing: 5,
+              runSpacing: 5,
               children: [
                 buildInfoBox('ชื่อลูกค้า', contract['arname']),
                 buildInfoBox(
@@ -90,15 +104,16 @@ class ContractListItem extends StatelessWidget {
                 buildInfoBox('เบอร์โทร', contract['mobileno']),
                 buildInfoBox('หมายเหตุ', contract['followremark']),
                 buildInfoBox('ที่อยู่', contract['addressis']),
-                buildInfoBox('ค่าทวงถาม', contract['amount408']),
-                buildInfoBox('ค่าปรับ', contract['hp_intamount']),
+                // buildInfoBox('ค่าทวงถาม', contract['amount408']),
+                // buildInfoBox('ค่าปรับ', contract['hp_intamount']),
                 buildInfoBox(
                   'วันที่จ่ายงาน',
-                  formatToDDMMYYYYThai(contract['tranferdate']),
+                  formatToDDMMYYYYThai(contract['tranferdate'],),
                 ),
+                
                 buildInfoBox('เวลาจ่ายงาน', contract['estm_date']),
                 buildInfoBox('ค่าติดตาม', contract['follow400']),
-                buildInfoBox('SEQ No.', contract['seqno']),
+                // buildInfoBox('SEQ No.', contract['seqno']),
                 buildInfoBox(
                   'ยอดค้างชำระ',
                   contract['hpprice'],
@@ -108,35 +123,72 @@ class ContractListItem extends StatelessWidget {
             ),
             SizedBox(height: 12),
             // ปุ่มด้านล่างขวา
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                if (contract['mobileno'] != null &&
-                    contract['mobileno'].toString().trim().isNotEmpty)
-                  IconButton(
-                    icon: Icon(Icons.phone, color: Colors.green[700]),
-                    tooltip: 'โทรออก',
-                    onPressed: () {
-                      final rawPhone = contract['mobileno'].toString();
-                      final cleanedPhone = rawPhone.replaceAll(
-                        RegExp(r'[^0-9+]'),
-                        '',
-                      );
-                      if (cleanedPhone.isNotEmpty) {
-                        onPhoneCall(cleanedPhone);
-                      } else {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text('ไม่พบเบอร์ในระบบ')),
-                        );
-                      }
-                    },
-                  ),
-                IconButton(
-                  icon: Icon(Icons.description, color: Colors.teal[700]),
-                  tooltip: 'รายละเอียด',
-                  onPressed: onShowDetail,
-                ),
-              ],
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final isNarrow = constraints.maxWidth < 400;
+                final buttonWidth =
+                    isNarrow ? (constraints.maxWidth / 2) - 20 : 150.0;
+
+                return Row(
+                  mainAxisAlignment: MainAxisAlignment.center, // จัดกลางแนวนอน
+                  children: [
+                    if (contract['mobileno'] != null &&
+                        contract['mobileno'].toString().trim().isNotEmpty)
+                      SizedBox(
+                        width: buttonWidth,
+                        child: ElevatedButton.icon(
+                          style: ElevatedButton.styleFrom(
+                             backgroundColor: Colors.green[400],
+                            padding: EdgeInsets.symmetric(vertical: 12),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                          ),
+                          icon: Icon(Icons.phone, size: 20),
+                          label: Text(
+                            'โทรออก',
+                            style: GoogleFonts.prompt(fontSize: 14),
+                          ),
+                          onPressed: () {
+                            final rawPhone = contract['mobileno'].toString();
+                            final cleanedPhone = rawPhone.replaceAll(
+                              RegExp(r'[^0-9+]'),
+                              '',
+                            );
+                            if (cleanedPhone.isNotEmpty) {
+                              onPhoneCall(cleanedPhone);
+                            } else {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text('ไม่พบเบอร์ในระบบ')),
+                              );
+                            }
+                          },
+                        ),
+                      ),
+                    if (contract['mobileno'] != null &&
+                        contract['mobileno'].toString().trim().isNotEmpty)
+                      SizedBox(width: 16),
+                    SizedBox(
+                      width: buttonWidth,
+                      child: ElevatedButton.icon(
+                        style: ElevatedButton.styleFrom(
+                         backgroundColor: Colors.teal[400], 
+                          padding: EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                        icon: Icon(Icons.description, size: 20),
+                        label: Text(
+                          'รายละเอียด',
+                          style: GoogleFonts.prompt(fontSize: 14),
+                        ),
+                        onPressed: onShowDetail,
+                      ),
+                    ),
+                  ],
+                );
+              },
             ),
           ],
         ),

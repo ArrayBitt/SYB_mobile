@@ -39,9 +39,15 @@ class ContractDetailDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final dialogWidth = screenWidth * 0.8; // กำหนด dialog กว้าง 80% ของหน้าจอ
+
     return AlertDialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       backgroundColor: Colors.grey[50],
+      insetPadding: EdgeInsets.symmetric(
+        horizontal: screenWidth * 0.1,
+      ), // เว้นขอบซ้ายขวา 10%
       title: Center(
         child: Text(
           '📄 รายละเอียดสัญญา',
@@ -52,21 +58,38 @@ class ContractDetailDialog extends StatelessWidget {
           ),
         ),
       ),
-      content: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildDetailRow('เลขที่สัญญา', contract['contractno']),
-            _buildDetailRow('รหัสผู้ติดตาม', contract['username'] ?? 'ไม่ระบุ'),
-            _buildDetailRow(
-              'วันที่ทำสัญญา',
-              formatDateToThaiDDMMYYYY(contract['contractdate']),
-            ),
-            _buildDetailRow('ยอดชำระ', contract['hpprice'] ?? 'ไม่ระบุ'),
-            _buildDetailRow('หมายเหตุ', contract['followremark'] ?? 'ไม่ระบุ'),
-            _buildDetailRow('เบอร์มือถือ', contract['mobileno'] ?? 'ไม่ระบุ'),
-            _buildDetailRow('ที่อยู่', contract['addressis'] ?? 'ไม่ระบุ'),
-          ],
+      content: ConstrainedBox(
+        constraints: BoxConstraints(
+          maxWidth: dialogWidth,
+          // กำหนด maxHeight ได้ถ้าต้องการ scrollable
+          maxHeight: MediaQuery.of(context).size.height * 0.6,
+        ),
+        child: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildDetailRow('เลขที่สัญญา', contract['contractno']),
+              _buildDetailRow(
+                'รหัสผู้ติดตาม',
+                contract['username'] ?? 'ไม่ระบุ',
+              ),
+              _buildDetailRow(
+                'วันที่ทำสัญญา',
+                formatDateToThaiDDMMYYYY(contract['contractdate']),
+              ),
+              _buildDetailRow(
+                'วันที่จ่ายงาน',
+                formatDateToThaiDDMMYYYY(contract['tranferdate']),
+              ),
+              _buildDetailRow('ยอดชำระ', contract['hpprice'] ?? 'ไม่ระบุ'),
+              _buildDetailRow(
+                'หมายเหตุ',
+                contract['followremark'] ?? 'ไม่ระบุ',
+              ),
+              _buildDetailRow('เบอร์มือถือ', contract['mobileno'] ?? 'ไม่ระบุ'),
+              _buildDetailRow('ที่อยู่', contract['addressis'] ?? 'ไม่ระบุ'),
+            ],
+          ),
         ),
       ),
       actionsAlignment: MainAxisAlignment.spaceEvenly,
