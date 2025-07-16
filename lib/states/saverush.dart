@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -725,6 +726,7 @@ class _SaveRushPageState extends State<SaveRushPage> {
     FormFieldValidator<String>? validator,
     bool enabled = true, // เพิ่มพารามิเตอร์นี้ (ดีฟอลต์เป็น true)
     bool readOnly = false, // ✅ เพิ่มตัวนี้
+     List<TextInputFormatter>? inputFormatters, // ✅ เพิ่มตรงนี้
   }) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
@@ -735,6 +737,7 @@ class _SaveRushPageState extends State<SaveRushPage> {
         style: GoogleFonts.prompt(),
         enabled: enabled, // เพิ่มตรงนี้สำหรับเปิด/ปิดการกรอก
         readOnly: readOnly, // ✅ เพิ่มตรงนี้
+         inputFormatters: inputFormatters, // ✅ ใช้ตรงนี้
         decoration: InputDecoration(
           prefixIcon: Icon(icon, color: Colors.amber.shade800),
           labelText: label,
@@ -1540,12 +1543,14 @@ class _SaveRushPageState extends State<SaveRushPage> {
                     },
                   ),
 
-                  _buildTextField(
+                 _buildTextField(
                     label: 'ระยะไมล์',
                     icon: Icons.directions_car,
                     controller: _mileageController,
                     keyboardType: TextInputType.number,
+                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                   ),
+
                   _buildTextField(
                     label: 'สถานที่',
                     icon: Icons.location_on,
