@@ -27,7 +27,7 @@ class _MainMobileState extends State<MainMobile> {
     _fetchData();
   }
 
-  Future<void> _fetchData() async {
+   Future<void> _fetchData() async {
    final url ='https://ss.cjk-cr.com/CJK/api/appfollowup/contract_api.php?username=${widget.username}';
    //final url = 'http://192.168.1.15/CJKTRAINING/api/appfollowup/contract_api.php?username=${widget.username}';
 
@@ -153,7 +153,7 @@ class _MainMobileState extends State<MainMobile> {
         backgroundColor: Colors.white,
         centerTitle: true,
         title: Text(
-          'สัญญาเร่งรัด (V 1.21)',
+          'สัญญาเร่งรัด (V 1.22)',
           style: GoogleFonts.prompt(
             fontWeight: FontWeight.bold,
             fontSize: 20,

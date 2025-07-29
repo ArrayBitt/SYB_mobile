@@ -2,7 +2,7 @@ name: cjk
 description: "A new Flutter project."
 publish_to: 'none'
 
-version: 1.0.1+21
+version: 1.0.1+22
 
 environment:
   sdk: ^3.7.2
@@ -62,5 +62,6 @@ flutter:
   uses-material-design: true
   assets:
     - assets/icon/somjai.png
+    - assets/icon/sidecar.png
   
 

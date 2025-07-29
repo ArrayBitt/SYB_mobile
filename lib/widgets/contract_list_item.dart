@@ -68,7 +68,7 @@ class ContractListItem extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // หัวข้อ
-           RichText(
+            RichText(
               text: TextSpan(
                 style: GoogleFonts.prompt(
                   fontSize: 18,
@@ -77,8 +77,31 @@ class ContractListItem extends StatelessWidget {
                 ),
                 children: [
                   TextSpan(
-                    text: 'เลขที่สัญญา: ${contract['contractno'] ?? ''}',
+                    text: 'เลขที่สัญญา: ${contract['contractno'] ?? ''} ',
                   ),
+                  // แสดงรูปถ้า groupleve เป็น A01 หรือ B08
+                  if ((contract['grouplevel'] ?? '').toString().toUpperCase() ==
+                          'A01' ||
+                      (contract['grouplevel'] ?? '').toString().toUpperCase() ==
+                          'B08')
+                    WidgetSpan(
+                      alignment: PlaceholderAlignment.middle,
+                      child: Padding(
+                        padding: EdgeInsets.only(left: 4, bottom: 2),
+                        child: Image.asset(
+                          'assets/icon/sidecar.png',
+                          width: 20,
+                          height: 20,
+                          errorBuilder: (context, error, stackTrace) {
+                            return Icon(
+                              Icons.error,
+                              size: 20,
+                              color: Colors.red,
+                            );
+                          },
+                        ),
+                      ),
+                    ),
                   if (contract['restatus'] == 'Y')
                     TextSpan(
                       text: ' (❗️หลุดนัด)',
@@ -108,11 +131,12 @@ class ContractListItem extends StatelessWidget {
                 // buildInfoBox('ค่าปรับ', contract['hp_intamount']),
                 buildInfoBox(
                   'วันที่จ่ายงาน',
-                  formatToDDMMYYYYThai(contract['tranferdate'],),
+                  formatToDDMMYYYYThai(contract['tranferdate']),
                 ),
-                
+
                 buildInfoBox('เวลาจ่ายงาน', contract['estm_date']),
                 buildInfoBox('ค่าติดตาม', contract['follow400']),
+                buildInfoBox('ยี่ห่อรถ', contract['brandname']),
                 // buildInfoBox('SEQ No.', contract['seqno']),
                 buildInfoBox(
                   'ยอดค้างชำระ',
@@ -138,7 +162,7 @@ class ContractListItem extends StatelessWidget {
                         width: buttonWidth,
                         child: ElevatedButton.icon(
                           style: ElevatedButton.styleFrom(
-                             backgroundColor: Colors.green[400],
+                            backgroundColor: Colors.green[400],
                             padding: EdgeInsets.symmetric(vertical: 12),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(10),
@@ -172,7 +196,7 @@ class ContractListItem extends StatelessWidget {
                       width: buttonWidth,
                       child: ElevatedButton.icon(
                         style: ElevatedButton.styleFrom(
-                         backgroundColor: Colors.teal[400], 
+                          backgroundColor: Colors.teal[400],
                           padding: EdgeInsets.symmetric(vertical: 12),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(10),

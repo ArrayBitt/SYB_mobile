@@ -87,12 +87,12 @@ class _SaveRushPageState extends State<SaveRushPage> {
   final TextEditingController _locationController = TextEditingController();
   final TextEditingController locationController = TextEditingController();
 
- 
-
   String? _selectedDatacarDetail;
 
   final TextEditingController _otherDatacarDetailController =
       TextEditingController();
+
+  String fcarstatus = '';
 
   // ฟังก์ชันแปลงวันที่จาก ค.ศ. เป็น พ.ศ.
   String convertToThaiDate(DateTime date) {
@@ -132,7 +132,7 @@ class _SaveRushPageState extends State<SaveRushPage> {
 
   List<String?> imageFilenames = List.filled(6, null);
 
-@override
+  @override
   void initState() {
     super.initState();
     _fetchFollowTypes();
@@ -283,7 +283,7 @@ class _SaveRushPageState extends State<SaveRushPage> {
             ? _otherPropertyController.text
             : (_selectedproperType ?? '');
 
-   String getFinalFollowAmountToSend() {
+    String getFinalFollowAmountToSend() {
       final overdueAmt = double.tryParse(widget.hp_overdueamt) ?? 0.0;
       final follow400 = double.tryParse(widget.follow400) ?? 0.0;
 
@@ -307,7 +307,7 @@ class _SaveRushPageState extends State<SaveRushPage> {
     }
 
     final String url1 =
-        'https://ss.cjk-cr.com/CJK/api/appfollowup/up_saverush.php?contractno=${widget.contractNo}';
+        'https://ss.cjk-cr.com/CJK/api/appfollowup/save_test.php?contractno=${widget.contractNo}';
 
     final data1 = {
       'contractno': widget.contractNo,
@@ -330,6 +330,7 @@ class _SaveRushPageState extends State<SaveRushPage> {
       'fdatacar': fdatacar,
       'farea': farea,
       'fproperty': fproperty,
+      'fcarstatus': fcarstatus,
       'pica': imageFilenames.length > 0 ? imageFilenames[0] : '',
       'picb': imageFilenames.length > 1 ? imageFilenames[1] : '',
       'picc': imageFilenames.length > 2 ? imageFilenames[2] : '',
@@ -726,7 +727,7 @@ class _SaveRushPageState extends State<SaveRushPage> {
     FormFieldValidator<String>? validator,
     bool enabled = true, // เพิ่มพารามิเตอร์นี้ (ดีฟอลต์เป็น true)
     bool readOnly = false, // ✅ เพิ่มตัวนี้
-     List<TextInputFormatter>? inputFormatters, // ✅ เพิ่มตรงนี้
+    List<TextInputFormatter>? inputFormatters, // ✅ เพิ่มตรงนี้
   }) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
@@ -737,7 +738,7 @@ class _SaveRushPageState extends State<SaveRushPage> {
         style: GoogleFonts.prompt(),
         enabled: enabled, // เพิ่มตรงนี้สำหรับเปิด/ปิดการกรอก
         readOnly: readOnly, // ✅ เพิ่มตรงนี้
-         inputFormatters: inputFormatters, // ✅ ใช้ตรงนี้
+        inputFormatters: inputFormatters, // ✅ ใช้ตรงนี้
         decoration: InputDecoration(
           prefixIcon: Icon(icon, color: Colors.amber.shade800),
           labelText: label,
@@ -1157,9 +1158,13 @@ class _SaveRushPageState extends State<SaveRushPage> {
                         _selectedDatacarDetail = null;
                         _isOtherDatacarDetail = false;
                         _otherDatacarDetailController.clear();
+
+                        // เคลียร์ค่า fdatacar และ fcarstatus ทุกครั้งที่เปลี่ยนหลัก
                         fdatacar = '';
+                        fcarstatus = '';
                       });
                     },
+
                     decoration: InputDecoration(
                       labelText: 'ข้อมูลรถ',
                       labelStyle: GoogleFonts.prompt(
@@ -1203,14 +1208,20 @@ class _SaveRushPageState extends State<SaveRushPage> {
                         setState(() {
                           _selectedDatacarDetail = value;
                           _isOtherDatacarDetail = value == 'อื่นๆ';
+
                           if (_isOtherDatacarDetail) {
                             _otherDatacarDetailController.clear();
-                            fdatacar = '${_selectedfdatacarType!} - ';
+                            fdatacar =
+                                '${_selectedfdatacarType!} - '; // เตรียมข้อความสำหรับกรอกเอง
+                            fcarstatus = ''; // เคลียร์ก่อนกรอกเอง
                           } else {
                             fdatacar = '${_selectedfdatacarType!} - $value';
+                            fcarstatus =
+                                value ?? ''; // เก็บค่ารายละเอียดที่เลือก
                           }
                         });
                       },
+
                       decoration: InputDecoration(
                         labelText:
                             _selectedfdatacarType == 'พบรถ'
@@ -1238,8 +1249,10 @@ class _SaveRushPageState extends State<SaveRushPage> {
                       onChanged: (val) {
                         setState(() {
                           fdatacar = '${_selectedfdatacarType!} - $val';
+                          fcarstatus = val; // เก็บค่าที่กรอกเอง
                         });
                       },
+
                       validator: (value) {
                         if (_isOtherDatacarDetail &&
                             (value == null || value.isEmpty)) {
@@ -1543,7 +1556,7 @@ class _SaveRushPageState extends State<SaveRushPage> {
                     },
                   ),
 
-                 _buildTextField(
+                  _buildTextField(
                     label: 'ระยะไมล์',
                     icon: Icons.directions_car,
                     controller: _mileageController,
