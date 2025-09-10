@@ -10,16 +10,11 @@ Future<void> checkAppVersion(BuildContext context) async {
 
   try {
     final response = await http.post(
-      Uri.parse('https://ss.cjk-cr.com/CJK/api/appfollowup/check_version.php'),
+      Uri.parse('https://syb.cjk-cr.com/SYYSJ/api/appfollowup/check_version.php'),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode({"version": currentVersion}),
     );
 
-    //     final response = await http.post(
-    //   Uri.parse('http://192.168.1.15/CJKTRAINING/api/appfollowup/check_version.php'),
-    //   headers: {'Content-Type': 'application/json'},
-    //   body: jsonEncode({"version": currentVersion}),
-    // );
 
     final data = jsonDecode(response.body);
 

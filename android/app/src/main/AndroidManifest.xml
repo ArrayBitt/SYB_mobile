@@ -1,5 +1,5 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.example.cjk">
+    package="com.example.syb">
 
   <uses-permission android:name="android.permission.CAMERA"/>
   <uses-permission android:name="android.permission.INTERNET"/>
@@ -34,7 +34,7 @@
   </queries>
 
   <application
-      android:label="cjk"
+      android:label="syb"
       android:name="${applicationName}"
       android:icon="@mipmap/ic_launcher"
       android:requestLegacyExternalStorage="true">

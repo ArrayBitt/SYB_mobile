@@ -1,7 +1,7 @@
-import 'package:cjk/utils/user_prefs.dart'; // เพิ่มบรรทัดนี้
-import 'package:cjk/states/authen.dart';
-import 'package:cjk/states/mainmobile.dart';
-import 'package:cjk/utils/check_version.dart';
+import 'package:syb/utils/user_prefs.dart'; // เพิ่มบรรทัดนี้
+import 'package:syb/states/authen.dart';
+import 'package:syb/states/mainmobile.dart';
+import 'package:syb/utils/check_version.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 

@@ -7,7 +7,7 @@ plugins {
 
 android {
     
-    namespace = "com.example.cjk"
+    namespace = "com.example.syb"
     compileSdk = 34
     ndkVersion = flutter.ndkVersion
 
@@ -21,7 +21,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.example.cjk"
+        applicationId = "com.example.syb"
         minSdk = 21              // รองรับ Android 5.0 ขึ้นไป
         targetSdk = 34           // Android 14
         versionCode = flutter.versionCode

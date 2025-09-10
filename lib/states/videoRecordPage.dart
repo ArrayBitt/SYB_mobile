@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 
-import 'package:cjk/states/video_compress_helper.dart';
+import 'package:syb/states/video_compress_helper.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
@@ -110,7 +110,7 @@ class _VideoRecordPageState extends State<VideoRecordPage> {
 
       final request = http.MultipartRequest(
         'POST',
-        Uri.parse('https://ss.cjk-cr.com/CJK/api/appfollowup/upload_video.php'),
+        Uri.parse('https://syb.cjk-cr.com/SYYSJ/api/appfollowup/upload_video.php'),
       );
 
       // final request = http.MultipartRequest(

@@ -53,7 +53,7 @@ class UploadService {
       final compressed = await compressImageIfNeeded(file);
 
       final uri = Uri.parse(
-        'https://ss.cjk-cr.com/CJK/api/appfollowup/picupload_api.php',
+        'https://syb.cjk-cr.com/SYYSJ/api/appfollowup/picupload_api.php',
       );
 
       final fileName = '${contractno}_${String.fromCharCode(65 + i)}.jpg';
@@ -95,7 +95,7 @@ class UploadService {
     required List<File?> imageFiles,
   }) async {
     final url =
-        'https://ss.cjk-cr.com/CJK/api/appfollowup/checkstatuspic_api.php';
+        'https://syb.cjk-cr.com/SYYSJ/api/appfollowup/checkstatuspic_api.php';
 
     final payload = {
       'contractno': contractno,

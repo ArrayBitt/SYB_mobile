@@ -94,64 +94,82 @@ class ContractDetailDialog extends StatelessWidget {
       ),
       actionsAlignment: MainAxisAlignment.spaceEvenly,
       actions: [
-        ElevatedButton.icon(
-          icon: Icon(Icons.assignment, color: Colors.white),
-          label: Text('ระบบจัดเก็บเร่งรัด', style: GoogleFonts.prompt()),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.amber[800],
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          ),
-          onPressed: () {
-            Navigator.of(context).pop();
-            Navigator.of(context).push(
-              MaterialPageRoute(
-                builder:
-                    (_) => SaveRushPage(
-                      contractNo: contract['contractno'] ?? '',
-                      hpprice: contract['hpprice'] ?? '',
-                      username: contract['username'] ?? '',
-                      hpIntAmount: contract['hp_intamount'] ?? '',
-                      aMount408: contract['amount408'] ?? '',
-                      aRname: contract['arname'] ?? '',
-                      tranferdate: contract['tranferdate'] ?? '',
-                      estmdate: contract['estm_date'] ?? '',
-                      videoFilenames: [],
-                      hp_overdueamt: contract['hp_overdueamt'] ?? '',
-                      seqno: contract['seqno'] ?? '',
-                      follow400: contract['follow400'] ?? '',
+        Center(
+          child: Wrap(
+            spacing: 12,
+            runSpacing: 12, // สำหรับกรณีบรรทัดใหม่
+            children: [
+              SizedBox(
+                width: 160,
+                child: ElevatedButton.icon(
+                  icon: Icon(Icons.assignment, color: Colors.white),
+                  label: Text(
+                    'ระบบจัดเก็บเร่งรัด',
+                    style: GoogleFonts.prompt(),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.amber[800],
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
                     ),
+                    padding: EdgeInsets.symmetric(vertical: 12),
+                  ),
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder:
+                            (_) => SaveRushPage(
+                              contractNo: contract['contractno'] ?? '',
+                              hpprice: contract['hpprice'] ?? '',
+                              username: contract['username'] ?? '',
+                              hpIntAmount: contract['hp_intamount'] ?? '',
+                              aMount408: contract['amount408'] ?? '',
+                              aRname: contract['arname'] ?? '',
+                              tranferdate: contract['tranferdate'] ?? '',
+                              estmdate: contract['estm_date'] ?? '',
+                              videoFilenames: [],
+                              hp_overdueamt: contract['hp_overdueamt'] ?? '',
+                              seqno: contract['seqno'] ?? '',
+                              follow400: contract['follow400'] ?? '',
+                            ),
+                      ),
+                    );
+                  },
+                ),
               ),
-            );
-          },
-        ),
-        ElevatedButton.icon(
-          icon: Icon(Icons.info_outline, color: Colors.white),
-          label: Text('รายละเอียดสัญญา', style: GoogleFonts.prompt()),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.teal,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          ),
-          onPressed: () {
-            Navigator.of(context).pop();
-            Navigator.of(context).push(
-              MaterialPageRoute(
-                builder:
-                    (_) => ShowContractPage(
-                      contractNo: contract['contractno'] ?? '',
-                      username: '',
-                      hpprice: null,
+              SizedBox(
+                width: 160,
+                child: ElevatedButton.icon(
+                  icon: Icon(Icons.info_outline, color: Colors.white),
+                  label: Text('รายละเอียดสัญญา', style: GoogleFonts.prompt()),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.teal,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
                     ),
+                    padding: EdgeInsets.symmetric(vertical: 12),
+                  ),
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder:
+                            (_) => ShowContractPage(
+                              contractNo: contract['contractno'] ?? '',
+                              username: '',
+                              hpprice: null,
+                            ),
+                      ),
+                    );
+                  },
+                ),
               ),
-            );
-          },
+            ],
+          ),
         ),
       ],
+
     );
   }
 }

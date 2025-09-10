@@ -1,7 +1,7 @@
 import 'dart:convert';
-import 'package:cjk/widgets/contract_detail_dialog.dart';
-import 'package:cjk/widgets/contract_list.dart';
-import 'package:cjk/widgets/contract_search_bar.dart';
+import 'package:syb/widgets/contract_detail_dialog.dart';
+import 'package:syb/widgets/contract_list.dart';
+import 'package:syb/widgets/contract_search_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:google_fonts/google_fonts.dart';
@@ -28,7 +28,7 @@ class _MainMobileState extends State<MainMobile> {
   }
 
    Future<void> _fetchData() async {
-   final url ='https://ss.cjk-cr.com/CJK/api/appfollowup/contract_api.php?username=${widget.username}';
+   final url ='https://syb.cjk-cr.com/SYYSJ/api/appfollowup/contract_api.php?username=${widget.username}';
    //final url = 'http://192.168.1.15/CJKTRAINING/api/appfollowup/contract_api.php?username=${widget.username}';
 
     setState(() {
@@ -153,7 +153,7 @@ class _MainMobileState extends State<MainMobile> {
         backgroundColor: Colors.white,
         centerTitle: true,
         title: Text(
-          'สัญญาเร่งรัด (V 1.22)',
+          'สัญญาเร่งรัด(SYB 1.3)',
           style: GoogleFonts.prompt(
             fontWeight: FontWeight.bold,
             fontSize: 20,

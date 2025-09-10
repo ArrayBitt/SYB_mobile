@@ -7,7 +7,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart'; // เพิ่มการ import สำหรับการแปลงวันที่
-import 'package:cjk/states/cameraGridPage.dart';
+import 'package:syb/states/cameraGridPage.dart';
 
 class SaveRushPage extends StatefulWidget {
   final String contractNo;
@@ -136,23 +136,6 @@ class _SaveRushPageState extends State<SaveRushPage> {
   void initState() {
     super.initState();
     _fetchFollowTypes();
-
-    final overdueAmt = double.tryParse(widget.hp_overdueamt) ?? 0.0;
-    final follow400 = double.tryParse(widget.follow400) ?? 0.0;
-
-    if (overdueAmt <= 1000) {
-      _isFollowFeeEditable = false;
-      _followFeeController.text = '0.00';
-    } else if (follow400 == 0.00) {
-      _isFollowFeeEditable = false;
-      _followFeeController.text = '400.00';
-    } else if (follow400 < 400.00) {
-      _isFollowFeeEditable = true;
-      _followFeeController.text = follow400.toStringAsFixed(2);
-    } else {
-      _isFollowFeeEditable = false;
-      _followFeeController.text = '0.00';
-    }
   }
 
   String formatThaiDate(String input) {
@@ -173,7 +156,7 @@ class _SaveRushPageState extends State<SaveRushPage> {
 
   Future<void> _fetchFollowTypes() async {
     const url =
-        'https://ss.cjk-cr.com/CJK/api/appfollowup/get_followtype.php?followtype=M-1';
+        'https://syb.cjk-cr.com/SYYSJ/api/appfollowup/get_followtype.php?followtype=M-1';
 
     // const url =
     //     'http://192.168.1.15/CJKTRAINING/api/appfollowup/get_followtype.php?followtype=M-1';
@@ -283,19 +266,6 @@ class _SaveRushPageState extends State<SaveRushPage> {
             ? _otherPropertyController.text
             : (_selectedproperType ?? '');
 
-    String getFinalFollowAmountToSend() {
-      final overdueAmt = double.tryParse(widget.hp_overdueamt) ?? 0.0;
-      final follow400 = double.tryParse(widget.follow400) ?? 0.0;
-
-      if (overdueAmt <= 1000) {
-        return '0.00'; // ไม่ถึงเกณฑ์ ไม่คิดค่าติดตาม
-      } else if (overdueAmt > 1000 && follow400 == 0.00) {
-        return '400.00'; // ครั้งแรกเท่านั้น ที่ยังไม่เคยถูกคิดค่าติดตาม
-      } else {
-        return '0.00'; // ครั้งถัดไป หรือเคยมี follow400 แล้ว
-      }
-    }
-
     try {
       Position position = await Geolocator.getCurrentPosition(
         desiredAccuracy: LocationAccuracy.high,
@@ -306,8 +276,9 @@ class _SaveRushPageState extends State<SaveRushPage> {
       print('⚠️ ไม่สามารถดึงตำแหน่งได้: $e');
     }
 
+    // API แรก: up_saverush.php
     final String url1 =
-        'https://ss.cjk-cr.com/CJK/api/appfollowup/save_test.php?contractno=${widget.contractNo}';
+        'https://syb.cjk-cr.com/SYYSJ/api/appfollowup/up_saverush.php?contractno=${widget.contractNo}';
 
     final data1 = {
       'contractno': widget.contractNo,
@@ -317,7 +288,7 @@ class _SaveRushPageState extends State<SaveRushPage> {
       'entrydate': entryDate,
       'timeupdate': timeUpdate,
       'meetingamount': _amountController.text,
-      'followamount': getFinalFollowAmountToSend(), // ✅ ใช้ค่าที่คำนวณแล้ว
+      'followamount': _followFeeController.text,
       'mileages': _mileageController.text,
       'maplocations': locationController.text,
       'checkrush': _isCompleted.toString(),
@@ -339,9 +310,6 @@ class _SaveRushPageState extends State<SaveRushPage> {
       'picf': imageFilenames.length > 5 ? imageFilenames[5] : '',
     };
 
-    print('📤 ส่งข้อมูลไปยัง API แรก: $url1');
-    print('📦 Payload API แรก: $data1');
-
     try {
       final res1 = await http.post(
         Uri.parse(url1),
@@ -349,22 +317,43 @@ class _SaveRushPageState extends State<SaveRushPage> {
         body: jsonEncode(data1),
       );
 
-      print('📥 Response API แรก Code: ${res1.statusCode}');
-      print('📥 Response API แรก Body: ${res1.body}');
-
       final responseData1 = json.decode(res1.body);
-
       if (res1.statusCode != 200 || responseData1['status'] != 'success') {
-        final msg =
-            responseData1 is Map && responseData1.containsKey('message')
-                ? responseData1['message']
-                : 'เกิดข้อผิดพลาดจาก API แรก';
+        final msg = responseData1['message'] ?? 'เกิดข้อผิดพลาดจาก API แรก';
         return {'success': false, 'message': '❌ API บันทึกติดตามล้มเหลว: $msg'};
       }
 
-      // ✅ API ที่ 2
+      // ✅ เรียก API ใหม่: sp_eventfollowup
+      final String url3 =
+          'https://syb.cjk-cr.com/SYYSJ/api/appfollowup/call_sp_eventfollowup.php';
+
+      final data3 = {
+        'contractno': widget.contractNo,
+        'entrydate': entryDate,
+        'seqno': responseData1['seqno'] ?? 1, // seqno ที่ insert
+        'followtype': _selectedFollowType ?? '',
+        'username': widget.username,
+      };
+
+      final res3 = await http.post(
+        Uri.parse(url3),
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode(data3),
+      );
+
+      final responseData3 = json.decode(res3.body);
+      if (res3.statusCode != 200 || responseData3['status'] != 'success') {
+        final msg =
+            responseData3['message'] ?? 'เกิดข้อผิดพลาดเรียก sp_eventfollowup';
+        return {
+          'success': false,
+          'message': '❌ API sp_eventfollowup ล้มเหลว: $msg',
+        };
+      }
+
+      // ✅ API ที่ 2: update_checkrush.php
       final String url2 =
-          'https://ss.cjk-cr.com/CJK/api/appfollowup/update_checkrush.php?contractno=${widget.contractNo}';
+          'https://syb.cjk-cr.com/SYYSJ/api/appfollowup/update_checkrush.php?contractno=${widget.contractNo}';
       final data2 = {
         'contractno': widget.contractNo,
         'tranferdate': widget.tranferdate,
@@ -373,78 +362,27 @@ class _SaveRushPageState extends State<SaveRushPage> {
         'username': widget.username,
       };
 
-      print('📤 ส่งข้อมูลไปยัง API ที่สอง: $url2');
-      print('📦 Payload API ที่สอง: $data2');
-
       final res2 = await http.post(
         Uri.parse(url2),
         headers: {"Content-Type": "application/json"},
         body: jsonEncode(data2),
       );
 
-      print('📥 Response API ที่สอง Code: ${res2.statusCode}');
-      print('📥 Response API ที่สอง Body: ${res2.body}');
-
       final responseData2 = json.decode(res2.body);
-
       if (res2.statusCode != 200 || responseData2['status'] != 'success') {
-        final msg =
-            responseData2 is Map && responseData2.containsKey('message')
-                ? responseData2['message']
-                : 'เกิดข้อผิดพลาดจาก API ที่สอง';
+        final msg = responseData2['message'] ?? 'เกิดข้อผิดพลาดจาก API ที่สอง';
         return {
           'success': false,
           'message': '❌ API อัปเดต checkrush ล้มเหลว: $msg',
         };
       }
 
-      // ✅ API ที่ 3
-      final String url3 =
-          'https://ss.cjk-cr.com/CJK/api/appfollowup/uprush_test.php?contractno=${widget.contractNo}';
-      final data3 = {
-        'contractno': widget.contractNo,
-        'entrydate': entryDate,
-        'followtype': _selectedFollowType ?? '',
-        'username': widget.username,
-        'follower': widget.username,
-        'followamount':
-            getFinalFollowAmountToSend(), // ✅ ตรงนี้ก็ใช้ค่าที่คำนวณแล้ว
-        'timeupdate': timeUpdate,
-        'seqno': widget.seqno.toString(),
-      };
-
-      print('📤 ส่งข้อมูลไปยัง API ที่สาม: $url3');
-      print('📦 Payload API ที่สาม: $data3');
-
-      final res3 = await http.post(
-        Uri.parse(url3),
-        headers: {"Content-Type": "application/json"},
-        body: jsonEncode(data3),
-      );
-
-      print('📥 Response API ที่สาม Code: ${res3.statusCode}');
-      print('📥 Response API ที่สาม Body: ${res3.body}');
-
-      final responseData3 = json.decode(res3.body);
-
-      if (res3.statusCode != 200 || responseData3['status'] != 'success') {
-        final msg =
-            responseData3 is Map && responseData3.containsKey('message')
-                ? responseData3['message']
-                : 'เกิดข้อผิดพลาดจาก API ที่สาม';
-        return {
-          'success': false,
-          'message': '❌ API บันทึก tblfollowup_ntl ล้มเหลว: $msg',
-        };
-      }
-
-      print('✅ บันทึกสำเร็จทั้ง 3 API');
       return {'success': true};
     } catch (e) {
-      print('❌ เกิดข้อผิดพลาดขณะส่งข้อมูล: $e');
-      return {'success': false, 'message': '❌ ข้อผิดพลาดระบบ: ${e.toString()}'};
+      return {'success': false, 'message': '❌ เกิดข้อผิดพลาด: ${e.toString()}'};
     }
   }
+
 
   void _submitForm() async {
     print('เริ่มบันทึกข้อมูล...');
@@ -823,7 +761,7 @@ class _SaveRushPageState extends State<SaveRushPage> {
       appBar: AppBar(
         backgroundColor: yellow,
         title: Text(
-          'บันทึกข้อมูลการตามหนี้',
+          'บันทึกข้อมูลการตามหนี้ SYB',
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
       ),
@@ -988,7 +926,6 @@ class _SaveRushPageState extends State<SaveRushPage> {
                         }
                       });
                     },
-
                     decoration: InputDecoration(
                       labelText: 'ประเภทบุคคล',
                       labelStyle: GoogleFonts.prompt(
@@ -1542,18 +1479,6 @@ class _SaveRushPageState extends State<SaveRushPage> {
                     icon: Icons.attach_money,
                     controller: _followFeeController,
                     keyboardType: TextInputType.number,
-                    enabled: _isFollowFeeEditable, // สีเทาหรือไม่
-                    readOnly: !_isFollowFeeEditable, // ปิดให้พิมพ์
-                    validator: (value) {
-                      if (!_isFollowFeeEditable) return null;
-                      if (value == null || value.isEmpty) {
-                        return 'กรุณากรอกค่าติดตาม';
-                      }
-                      if (!RegExp(r'^\d+\.00$').hasMatch(value)) {
-                        return 'ค่าติดตามต้องลงท้ายด้วย .00';
-                      }
-                      return null;
-                    },
                   ),
 
                   _buildTextField(

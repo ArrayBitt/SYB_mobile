@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 class ApiService {
-  static const String baseUrl = 'https://ss.cjk-cr.com/CJK/api/appfollowup/';
+  static const String baseUrl = 'https://syb.cjk-cr.com/SYYSJ/api/appfollowup/';
 
   Future<Map<String, dynamic>> saveRushData(Map<String, dynamic> data) async {
     final response = await http.post(

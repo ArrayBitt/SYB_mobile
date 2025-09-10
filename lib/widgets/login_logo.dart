@@ -7,7 +7,7 @@ class LoginLogo extends StatelessWidget {
       width: 250,
       height: 250,
       padding: const EdgeInsets.all(8.0),
-      child: Image.asset('assets/icon/somjai.png', fit: BoxFit.contain),
+      child: Image.asset('assets/icon/syblogo.png', fit: BoxFit.contain),
     );
   }
 }

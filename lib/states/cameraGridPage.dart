@@ -1,8 +1,8 @@
 import 'dart:async';
 import 'dart:io';
 
-import 'package:cjk/states/upload_service.dart';
-import 'package:cjk/states/videoRecordPage.dart';
+import 'package:syb/states/upload_service.dart';
+import 'package:syb/states/videoRecordPage.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -14,6 +14,8 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'dart:ui' as ui;
+import 'package:image/image.dart' as img;
+
 
 class CameraGridPage extends StatefulWidget {
   final String contractno;
@@ -26,7 +28,10 @@ class CameraGridPage extends StatefulWidget {
 class _CameraGridPageState extends State<CameraGridPage> {
   final ImagePicker _picker = ImagePicker();
   List<File?> _imageFiles = List.generate(6, (index) => null);
-  List<TextEditingController> _textControllers = List.generate( 6,(index) => TextEditingController(),);
+  List<TextEditingController> _textControllers = List.generate(
+    6,
+    (index) => TextEditingController(),
+  );
 
   List<bool> _uploadedFlags = List.filled(6, false);
 
@@ -38,7 +43,6 @@ class _CameraGridPageState extends State<CameraGridPage> {
 
   String _getUploadFlagsPrefKey() => 'uploadedFlags_${widget.contractno}';
 
-
   String _getPrefKey() => 'imagePaths_${widget.contractno}';
 
   @override
@@ -46,15 +50,9 @@ class _CameraGridPageState extends State<CameraGridPage> {
     super.initState();
     _loadSavedImages();
     _loadUploadedFlags();
- 
 
-     // ✅ เรียก popup ตรวจสอบเฉพาะครั้งแรก
-   
+    // ✅ เรียก popup ตรวจสอบเฉพาะครั้งแรก
   }
-
-
-
-
 
   Future<void> _loadUploadedFlags() async {
     final prefs = await SharedPreferences.getInstance();
@@ -65,6 +63,7 @@ class _CameraGridPageState extends State<CameraGridPage> {
       _uploadedFlags = flags.map((e) => e == 'true').toList();
     });
   }
+
   Future<void> _saveImagePaths(int index, String imagePath) async {
     final prefs = await SharedPreferences.getInstance();
     List<String> savedPaths =
@@ -181,7 +180,7 @@ class _CameraGridPageState extends State<CameraGridPage> {
       final directory = await getApplicationDocumentsDirectory();
       String fileName =
           '${widget.contractno}_${String.fromCharCode(65 + index)}.jpg';
-      String url = 'https://ss.cjk-cr.com/Pictures/$fileName';
+      String url = 'https://syb.cjk-cr.com/Pictures/$fileName';
       String localPath = path.join(directory.path, fileName);
 
       final response = await http.get(Uri.parse(url));
@@ -197,8 +196,7 @@ class _CameraGridPageState extends State<CameraGridPage> {
     }
     return null;
   }
-
-  Future<void> _pickImage(int index, ImageSource source) async {
+Future<void> _pickImage(int index, ImageSource source) async {
     bool granted = await _requestAllPermissions();
     if (!granted) {
       ScaffoldMessenger.of(
@@ -210,26 +208,31 @@ class _CameraGridPageState extends State<CameraGridPage> {
     try {
       final pickedFile = await _picker.pickImage(source: source);
       if (pickedFile != null) {
-        final now = DateTime.now();
-        final timestamp =
-            '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')} '
-            '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
+        final bytes = await pickedFile.readAsBytes();
 
-        String newPath;
-        if (kIsWeb) {
-          newPath = pickedFile.path;
-        } else {
-          final directory = await getApplicationDocumentsDirectory();
-          newPath = path.join(
-            directory.path,
-            '${widget.contractno}_${String.fromCharCode(65 + index)}.jpg',
-          );
+        // decode image
+        final originalImage = img.decodeImage(bytes);
+        if (originalImage == null) {
+          throw Exception('ไม่สามารถ decode รูปภาพได้');
         }
 
+        // resize image: ปรับกว้างเป็น 1024 px โดยรักษาสัดส่วน
+        final resizedImage = img.copyResize(originalImage, width: 1024);
+
+        // compress image คุณภาพ 85%
+        final jpgBytes = img.encodeJpg(resizedImage, quality: 85);
+
+        final directory = await getApplicationDocumentsDirectory();
+        final newPath = path.join(
+          directory.path,
+          '${widget.contractno}_${String.fromCharCode(65 + index)}.jpg',
+        );
+
         final newImage = File(newPath);
-        await newImage.writeAsBytes(await pickedFile.readAsBytes());
+        await newImage.writeAsBytes(jpgBytes);
 
         print('📂 รูปใหม่ถูกบันทึกไว้ที่: $newPath');
+
         setState(() {
           _imageFiles[index] = newImage;
         });
@@ -276,7 +279,6 @@ class _CameraGridPageState extends State<CameraGridPage> {
     await prefs.setStringList(_getUploadFlagsPrefKey(), flags);
   }
 
-
   void _saveImagesAndReturn() async {
     if (widget.contractno.trim().isEmpty) {
       ScaffoldMessenger.of(
@@ -292,8 +294,6 @@ class _CameraGridPageState extends State<CameraGridPage> {
       return;
     }
   }
-
-  
 
   @override
   void dispose() {
@@ -318,7 +318,7 @@ class _CameraGridPageState extends State<CameraGridPage> {
     final yellow = Colors.amber.shade700;
 
     return WillPopScope(
-    onWillPop: () async {
+      onWillPop: () async {
         if (_uploadStatusNotifier.value.contains('📸')) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text('กำลังอัปโหลด กรุณารอสักครู่')),
@@ -434,7 +434,6 @@ class _CameraGridPageState extends State<CameraGridPage> {
 
         return true;
       },
-
 
       child: Scaffold(
         resizeToAvoidBottomInset: true,

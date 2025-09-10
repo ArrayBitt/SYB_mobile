@@ -3,11 +3,11 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:cjk/states/mainmobile.dart';
-import 'package:cjk/widgets/login_logo.dart';
-import 'package:cjk/widgets/login_form.dart';
-import 'package:cjk/widgets/login_button.dart';
-import 'package:cjk/widgets/loading_indicator.dart';
+import 'package:syb/states/mainmobile.dart';
+import 'package:syb/widgets/login_logo.dart';
+import 'package:syb/widgets/login_form.dart';
+import 'package:syb/widgets/login_button.dart';
+import 'package:syb/widgets/loading_indicator.dart';
 
 class AuthenPage extends StatefulWidget {
   @override
@@ -35,10 +35,9 @@ class _AuthenPageState extends State<AuthenPage> {
 
       final username = _userController.text;
       final password = _passwordController.text;
-     final url = 'https://ss.cjk-cr.com/CJK/api/appfollowup/users.php';
+     final url = 'https://syb.cjk-cr.com/SYYSJ/api/appfollowup/users.php';
 
-     //final url = 'http://192.168.1.15/CJKTRAINING/api/appfollowup/users.php';
-
+    
       try {
         final response = await http.post(
           Uri.parse(url),

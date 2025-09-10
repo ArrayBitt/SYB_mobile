@@ -24,11 +24,7 @@ class _CardCutPageState extends State<CardCutPage> {
   }
 
   Future<void> loadPDF() async {
-    final url ='https://ss.cjk-cr.com/Formspdf/frm_hp_cardcut.php?p_dbmsname=MotorBikeDBMS&p_docno=${widget.contractNo}';
-
-    //final url ='http://192.168.1.15/CJKTRAINING/Formspdf/frm_hp_cardcut.php?p_dbmsname=MotorBikeDBMS&p_docno=${widget.contractNo}';
-
-   
+    final url ='https://syb.cjk-cr.com/SYYSJ/Formspdf/frm_hp_cardcut.php?p_dbmsname=syysj&p_docno=${widget.contractNo}';
 
     final response = await http.get(Uri.parse(url));
     final bytes = response.bodyBytes;
