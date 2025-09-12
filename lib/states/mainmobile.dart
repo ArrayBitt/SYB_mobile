@@ -153,7 +153,7 @@ class _MainMobileState extends State<MainMobile> {
         backgroundColor: Colors.white,
         centerTitle: true,
         title: Text(
-          'สัญญาเร่งรัด(SYB 1.3)',
+          'สัญญาเร่งรัด(SYB 1.4)',
           style: GoogleFonts.prompt(
             fontWeight: FontWeight.bold,
             fontSize: 20,

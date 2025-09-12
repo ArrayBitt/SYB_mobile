@@ -238,7 +238,7 @@ class _SaveRushPageState extends State<SaveRushPage> {
     }
   }
 
-  Future<Map<String, dynamic>> _saveRush() async {
+Future<Map<String, dynamic>> _saveRush() async {
     DateTime now = DateTime.now();
     String entryDate =
         '${now.year + 543}${now.month.toString().padLeft(2, '0')}${now.day.toString().padLeft(2, '0')}';
@@ -323,35 +323,134 @@ class _SaveRushPageState extends State<SaveRushPage> {
         return {'success': false, 'message': '❌ API บันทึกติดตามล้มเหลว: $msg'};
       }
 
-      // ✅ เรียก API ใหม่: sp_eventfollowup
-      final String url3 =
-          'https://syb.cjk-cr.com/SYYSJ/api/appfollowup/call_sp_eventfollowup.php';
+      // 🔹 ตรวจสอบ followamount ก่อนเรียก sp_eventfollowup
+      final followAmount = double.tryParse(_followFeeController.text) ?? 0;
+      if (followAmount <= 0) {
+        final confirm = await showDialog<bool>(
+          context: context,
+          barrierDismissible: false,
+          builder:
+              (context) => Dialog(
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                elevation: 10,
+                backgroundColor: Colors.white,
+                child: Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.warning_amber_rounded,
+                        size: 60,
+                        color: Colors.orangeAccent,
+                      ),
+                      SizedBox(height: 15),
+                      Text(
+                        'ค่าติดตามว่างเปล่า!',
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.black87,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                      SizedBox(height: 10),
+                      Text(
+                        'คุณไม่ได้กรอกค่าติดตาม (followamount = 0)\nต้องการบันทึกจริง ๆ ใช่ไหม?',
+                        style: TextStyle(fontSize: 16, color: Colors.black54),
+                        textAlign: TextAlign.center,
+                      ),
+                      SizedBox(height: 25),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                        children: [
+                          ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.grey[300],
+                              foregroundColor: Colors.black87,
+                              padding: EdgeInsets.symmetric(
+                                horizontal: 25,
+                                vertical: 12,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                            ),
+                            onPressed: () => Navigator.pop(context, false),
+                            child: Text(
+                              'ยกเลิก',
+                              style: TextStyle(fontSize: 16),
+                            ),
+                          ),
+                          ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.orangeAccent,
+                              foregroundColor: Colors.white,
+                              padding: EdgeInsets.symmetric(
+                                horizontal: 25,
+                                vertical: 12,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                            ),
+                            onPressed: () => Navigator.pop(context, true),
+                            child: Text(
+                              'ยืนยัน',
+                              style: TextStyle(fontSize: 16),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+        );
 
-      final data3 = {
-        'contractno': widget.contractNo,
-        'entrydate': entryDate,
-        'seqno': responseData1['seqno'] ?? 1, // seqno ที่ insert
-        'followtype': _selectedFollowType ?? '',
-        'username': widget.username,
-      };
+        if (confirm != true) {
+          return {
+            'success': false,
+            'message': '❌ ผู้ใช้ยกเลิกการบันทึก followamount',
+          };
+        }
 
-      final res3 = await http.post(
-        Uri.parse(url3),
-        headers: {"Content-Type": "application/json"},
-        body: jsonEncode(data3),
-      );
+        // ข้าม API sp_eventfollowup
+        print('⚠️ followamount <= 0, ข้าม sp_eventfollowup');
+      } else {
+        // เรียก API sp_eventfollowup ตามปกติ
+        final String url3 =
+            'https://syb.cjk-cr.com/SYYSJ/api/appfollowup/call_sp_eventfollowup.php';
 
-      final responseData3 = json.decode(res3.body);
-      if (res3.statusCode != 200 || responseData3['status'] != 'success') {
-        final msg =
-            responseData3['message'] ?? 'เกิดข้อผิดพลาดเรียก sp_eventfollowup';
-        return {
-          'success': false,
-          'message': '❌ API sp_eventfollowup ล้มเหลว: $msg',
+        final data3 = {
+          'contractno': widget.contractNo,
+          'entrydate': entryDate,
+          'seqno': responseData1['seqno'] ?? 1,
+          'followtype': _selectedFollowType ?? '',
+          'username': widget.username,
         };
+
+        final res3 = await http.post(
+          Uri.parse(url3),
+          headers: {"Content-Type": "application/json"},
+          body: jsonEncode(data3),
+        );
+
+        final responseData3 = json.decode(res3.body);
+        if (res3.statusCode != 200 || responseData3['status'] != 'success') {
+          final msg =
+              responseData3['message'] ??
+              'เกิดข้อผิดพลาดเรียก sp_eventfollowup';
+          return {
+            'success': false,
+            'message': '❌ API sp_eventfollowup ล้มเหลว: $msg',
+          };
+        }
       }
 
-      // ✅ API ที่ 2: update_checkrush.php
+      // API ที่ 2: update_checkrush.php
       final String url2 =
           'https://syb.cjk-cr.com/SYYSJ/api/appfollowup/update_checkrush.php?contractno=${widget.contractNo}';
       final data2 = {
@@ -382,6 +481,7 @@ class _SaveRushPageState extends State<SaveRushPage> {
       return {'success': false, 'message': '❌ เกิดข้อผิดพลาด: ${e.toString()}'};
     }
   }
+
 
 
   void _submitForm() async {
