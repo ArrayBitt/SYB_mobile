@@ -10,6 +10,7 @@ import 'package:intl/intl.dart'; // เพิ่มการ import สำหร
 import 'package:syb/states/cameraGridPage.dart';
 
 class SaveRushPage extends StatefulWidget {
+  final String contractId;
   final String contractNo;
   final String hpprice;
   final String username;
@@ -37,6 +38,7 @@ class SaveRushPage extends StatefulWidget {
     required this.hp_overdueamt,
     required this.seqno,
     required this.follow400,
+    required this.contractId,
   }) : super(key: key);
 
   @override
@@ -94,6 +96,8 @@ class _SaveRushPageState extends State<SaveRushPage> {
 
   String fcarstatus = '';
 
+  String _isCompleted = 'N';
+
   // ฟังก์ชันแปลงวันที่จาก ค.ศ. เป็น พ.ศ.
   String convertToThaiDate(DateTime date) {
     int year = date.year + 543; // เพิ่ม 543 ปี
@@ -102,8 +106,10 @@ class _SaveRushPageState extends State<SaveRushPage> {
     ).format(DateTime(year, date.month, date.day));
   }
 
-  String getStatusText(bool status) {
-    return status ? 'สำเร็จ' : 'รอดำเนินการ';
+  String getStatusText(String status) {
+    if (status == 'Y') return 'สำเร็จ';
+    if (status == 'N') return 'รอดำเนินการ';
+    return '-';
   }
 
   // ฟังก์ชันสำหรับเลือกวันที่
@@ -124,7 +130,6 @@ class _SaveRushPageState extends State<SaveRushPage> {
 
   int _selectedIndex = 0;
   bool _isSaving = false;
-  bool _isCompleted = false;
 
   bool _loadingFollowTypes = true;
   List<Map<String, String>> _followTypes = [];
@@ -238,7 +243,7 @@ class _SaveRushPageState extends State<SaveRushPage> {
     }
   }
 
-Future<Map<String, dynamic>> _saveRush() async {
+  Future<Map<String, dynamic>> _saveRush() async {
     DateTime now = DateTime.now();
     String entryDate =
         '${now.year + 543}${now.month.toString().padLeft(2, '0')}${now.day.toString().padLeft(2, '0')}';
@@ -274,12 +279,13 @@ Future<Map<String, dynamic>> _saveRush() async {
       longitude = position.longitude;
     } catch (e) {
       print('⚠️ ไม่สามารถดึงตำแหน่งได้: $e');
+      latitude = 0;
+      longitude = 0;
     }
 
-    // API แรก: up_saverush.php
-    final String url1 =
+    // -------- API 1: up_saverush.php --------
+    final url1 =
         'https://syb.cjk-cr.com/SYYSJ/api/appfollowup/up_saverush.php?contractno=${widget.contractNo}';
-
     final data1 = {
       'contractno': widget.contractNo,
       'memo': _noteController.text,
@@ -291,7 +297,7 @@ Future<Map<String, dynamic>> _saveRush() async {
       'followamount': _followFeeController.text,
       'mileages': _mileageController.text,
       'maplocations': locationController.text,
-      'checkrush': _isCompleted.toString(),
+      'checkrush': _isCompleted,
       'latitude': latitude?.toString() ?? '',
       'longtitude': longitude?.toString() ?? '',
       'follower': widget.username,
@@ -316,114 +322,20 @@ Future<Map<String, dynamic>> _saveRush() async {
         headers: {"Content-Type": "application/json"},
         body: jsonEncode(data1),
       );
-
       final responseData1 = json.decode(res1.body);
       if (res1.statusCode != 200 || responseData1['status'] != 'success') {
-        final msg = responseData1['message'] ?? 'เกิดข้อผิดพลาดจาก API แรก';
-        return {'success': false, 'message': '❌ API บันทึกติดตามล้มเหลว: $msg'};
+        return {
+          'success': false,
+          'message':
+              '❌ API up_saverush ล้มเหลว: ${responseData1['message'] ?? 'unknown error'}',
+        };
       }
 
-      // 🔹 ตรวจสอบ followamount ก่อนเรียก sp_eventfollowup
+      // -------- API 2: sp_eventfollowup --------
       final followAmount = double.tryParse(_followFeeController.text) ?? 0;
-      if (followAmount <= 0) {
-        final confirm = await showDialog<bool>(
-          context: context,
-          barrierDismissible: false,
-          builder:
-              (context) => Dialog(
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                elevation: 10,
-                backgroundColor: Colors.white,
-                child: Padding(
-                  padding: const EdgeInsets.all(20),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        Icons.warning_amber_rounded,
-                        size: 60,
-                        color: Colors.orangeAccent,
-                      ),
-                      SizedBox(height: 15),
-                      Text(
-                        'ค่าติดตามว่างเปล่า!',
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.black87,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                      SizedBox(height: 10),
-                      Text(
-                        'คุณไม่ได้กรอกค่าติดตาม (followamount = 0)\nต้องการบันทึกจริง ๆ ใช่ไหม?',
-                        style: TextStyle(fontSize: 16, color: Colors.black54),
-                        textAlign: TextAlign.center,
-                      ),
-                      SizedBox(height: 25),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                        children: [
-                          ElevatedButton(
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.grey[300],
-                              foregroundColor: Colors.black87,
-                              padding: EdgeInsets.symmetric(
-                                horizontal: 25,
-                                vertical: 12,
-                              ),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                            ),
-                            onPressed: () => Navigator.pop(context, false),
-                            child: Text(
-                              'ยกเลิก',
-                              style: TextStyle(fontSize: 16),
-                            ),
-                          ),
-                          ElevatedButton(
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.orangeAccent,
-                              foregroundColor: Colors.white,
-                              padding: EdgeInsets.symmetric(
-                                horizontal: 25,
-                                vertical: 12,
-                              ),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                            ),
-                            onPressed: () => Navigator.pop(context, true),
-                            child: Text(
-                              'ยืนยัน',
-                              style: TextStyle(fontSize: 16),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-        );
-
-        if (confirm != true) {
-          return {
-            'success': false,
-            'message': '❌ ผู้ใช้ยกเลิกการบันทึก followamount',
-          };
-        }
-
-        // ข้าม API sp_eventfollowup
-        print('⚠️ followamount <= 0, ข้าม sp_eventfollowup');
-      } else {
-        // เรียก API sp_eventfollowup ตามปกติ
-        final String url3 =
+      if (followAmount > 0) {
+        final url3 =
             'https://syb.cjk-cr.com/SYYSJ/api/appfollowup/call_sp_eventfollowup.php';
-
         final data3 = {
           'contractno': widget.contractNo,
           'entrydate': entryDate,
@@ -431,48 +343,40 @@ Future<Map<String, dynamic>> _saveRush() async {
           'followtype': _selectedFollowType ?? '',
           'username': widget.username,
         };
-
         final res3 = await http.post(
           Uri.parse(url3),
           headers: {"Content-Type": "application/json"},
           body: jsonEncode(data3),
         );
-
         final responseData3 = json.decode(res3.body);
         if (res3.statusCode != 200 || responseData3['status'] != 'success') {
-          final msg =
-              responseData3['message'] ??
-              'เกิดข้อผิดพลาดเรียก sp_eventfollowup';
           return {
             'success': false,
-            'message': '❌ API sp_eventfollowup ล้มเหลว: $msg',
+            'message':
+                '❌ API sp_eventfollowup ล้มเหลว: ${responseData3['message'] ?? 'unknown error'}',
           };
         }
       }
 
-      // API ที่ 2: update_checkrush.php
-      final String url2 =
-          'https://syb.cjk-cr.com/SYYSJ/api/appfollowup/update_checkrush.php?contractno=${widget.contractNo}';
+      final url2 =
+          'https://syb.cjk-cr.com/SYYSJ/api/appfollowup/checkrush_n.php';
       final data2 = {
-        'contractno': widget.contractNo,
-        'tranferdate': widget.tranferdate,
-        'estm_date': widget.estmdate,
-        'checkrush': _isCompleted.toString(),
+        'id': int.tryParse(widget.contractId) ?? 0,
+        'checkrush': _isCompleted == true ? 'Y' : 'N', // ส่งเป็น string 'Y'/'N'
         'username': widget.username,
+        'contractno': widget.contractNo,
       };
-
       final res2 = await http.post(
         Uri.parse(url2),
         headers: {"Content-Type": "application/json"},
         body: jsonEncode(data2),
       );
-
       final responseData2 = json.decode(res2.body);
       if (res2.statusCode != 200 || responseData2['status'] != 'success') {
-        final msg = responseData2['message'] ?? 'เกิดข้อผิดพลาดจาก API ที่สอง';
         return {
           'success': false,
-          'message': '❌ API อัปเดต checkrush ล้มเหลว: $msg',
+          'message':
+              '❌ API update_checkrush ล้มเหลว: ${responseData2['message'] ?? 'unknown error'}',
         };
       }
 
@@ -481,8 +385,6 @@ Future<Map<String, dynamic>> _saveRush() async {
       return {'success': false, 'message': '❌ เกิดข้อผิดพลาด: ${e.toString()}'};
     }
   }
-
-
 
   void _submitForm() async {
     print('เริ่มบันทึกข้อมูล...');
@@ -983,6 +885,46 @@ Future<Map<String, dynamic>> _saveRush() async {
                       Expanded(
                         child: Text(
                           '${widget.hp_overdueamt}',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.black87,
+                          ),
+                          textAlign: TextAlign.right,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Container(
+                  padding: EdgeInsets.all(16),
+                  margin: EdgeInsets.only(bottom: 16),
+                  decoration: BoxDecoration(
+                    color: Colors.amber.shade100,
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.amber.withOpacity(0.3),
+                        blurRadius: 8,
+                        offset: Offset(0, 3),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.payment, color: Colors.amber.shade700),
+                      SizedBox(width: 12),
+                      Text(
+                        'ID ContractNo: ',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.amber.shade900,
+                        ),
+                      ),
+                      Expanded(
+                        child: Text(
+                          '${widget.contractId}',
                           style: TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
@@ -1666,18 +1608,15 @@ Future<Map<String, dynamic>> _saveRush() async {
 
                   SizedBox(height: 16),
 
-                  DropdownButtonFormField<bool>(
+                  DropdownButtonFormField<String>(
                     value: _isCompleted,
                     items: const [
-                      DropdownMenuItem(
-                        value: false,
-                        child: Text('รอดำเนินการ'),
-                      ),
-                      DropdownMenuItem(value: true, child: Text('สำเร็จ')),
+                      DropdownMenuItem(value: 'N', child: Text('รอดำเนินการ')),
+                      DropdownMenuItem(value: 'Y', child: Text('สำเร็จ')),
                     ],
                     onChanged: (value) {
                       setState(() {
-                        _isCompleted = value!;
+                        _isCompleted = value ?? 'N';
                       });
                     },
                     decoration: InputDecoration(

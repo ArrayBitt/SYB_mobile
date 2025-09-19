@@ -124,6 +124,7 @@ class ContractListItem extends StatelessWidget {
                   'วันที่ทำสัญญา',
                   formatToDDMMYYYYThai(contract['contractdate']),
                 ),
+                buildInfoBox('รหัสไอดี', contract['id']),
                 buildInfoBox('เบอร์โทร', contract['mobileno']),
                 buildInfoBox('หมายเหตุ', contract['followremark']),
                 buildInfoBox('ที่อยู่', contract['addressis']),

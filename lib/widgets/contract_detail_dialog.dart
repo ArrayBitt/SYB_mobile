@@ -74,6 +74,10 @@ class ContractDetailDialog extends StatelessWidget {
                 contract['username'] ?? 'ไม่ระบุ',
               ),
               _buildDetailRow(
+                'รหัสไอดี',
+                contract['id'] ?? 'ไม่ระบุ',
+              ),
+              _buildDetailRow(
                 'วันที่ทำสัญญา',
                 formatDateToThaiDDMMYYYY(contract['contractdate']),
               ),
@@ -131,7 +135,8 @@ class ContractDetailDialog extends StatelessWidget {
                               videoFilenames: [],
                               hp_overdueamt: contract['hp_overdueamt'] ?? '',
                               seqno: contract['seqno'] ?? '',
-                              follow400: contract['follow400'] ?? '',
+                              follow400: contract['follow400'] ?? '', 
+                              contractId: contract['id'] ?? '',
                             ),
                       ),
                     );
